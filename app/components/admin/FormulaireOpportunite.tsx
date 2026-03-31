@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Eye,
   Save,
@@ -50,6 +50,25 @@ export interface FormDataOpportunite {
   datePublication: string;
 }
 
+export type SuggestionFieldKey =
+  | 'intituleAction'
+  | 'domaineAction'
+  | 'descriptionGenerale'
+  | 'impactsObjectifs'
+  | 'detailsContributions'
+  | 'conditionsMission'
+  | 'publicVise'
+  | 'timingAction'
+  | 'missionUrgente'
+  | 'actionDistance'
+  | 'remunerationPrevue';
+
+export interface InlineFieldSuggestion {
+  field: SuggestionFieldKey;
+  value: string;
+  explanation: string;
+}
+
 interface FormulaireOpportuniteProps {
   formData: FormDataOpportunite;
   setFormData: React.Dispatch<React.SetStateAction<FormDataOpportunite>>;
@@ -60,6 +79,11 @@ interface FormulaireOpportuniteProps {
   onPreview: () => void;
   submitLabel?: string;
   isEditMode?: boolean;
+  hideFooter?: boolean;
+  hideHeader?: boolean;
+  inlineSuggestion?: InlineFieldSuggestion | null;
+  onKeepInlineSuggestion?: (field: SuggestionFieldKey, value: string) => void;
+  onDiscardInlineSuggestion?: () => void;
 }
 
 export function FormulaireOpportunite({
@@ -72,9 +96,41 @@ export function FormulaireOpportunite({
   onPreview,
   submitLabel,
   isEditMode = false,
+  hideFooter = false,
+  hideHeader = false,
+  inlineSuggestion = null,
+  onKeepInlineSuggestion,
+  onDiscardInlineSuggestion,
 }: FormulaireOpportuniteProps) {
 
   const t = useTranslations('Admin.MissionForm');
+
+  // Refs for auto-scroll to suggestion fields
+  const fieldRefs = useRef<Record<SuggestionFieldKey, HTMLDivElement | null>>({
+    intituleAction: null,
+    domaineAction: null,
+    descriptionGenerale: null,
+    impactsObjectifs: null,
+    detailsContributions: null,
+    conditionsMission: null,
+    publicVise: null,
+    timingAction: null,
+    missionUrgente: null,
+    actionDistance: null,
+    remunerationPrevue: null,
+  });
+
+  // Auto-scroll to field when inline suggestion appears
+  useEffect(() => {
+    if (inlineSuggestion && fieldRefs.current[inlineSuggestion.field]) {
+      const fieldElement = fieldRefs.current[inlineSuggestion.field];
+      if (fieldElement) {
+        setTimeout(() => {
+          fieldElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 0);
+      }
+    }
+  }, [inlineSuggestion]);
   const resolvedSubmitLabel = submitLabel || (isEditMode ? t('edit_submit') : t('create_submit'));
 
   const updateField = (field: string, value: any) => {
@@ -131,9 +187,40 @@ export function FormulaireOpportunite({
     { value: "urgences", label: t('domains.urgences') },
   ];
 
+  const renderInlineSuggestion = (field: SuggestionFieldKey) => {
+    if (!inlineSuggestion || inlineSuggestion.field !== field) return null;
+
+    return (
+      <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+        <p className="text-xs text-amber-900 font-medium mb-1">Suggestion IA</p>
+        <p className="text-xs text-amber-800 mb-1 whitespace-pre-wrap">{inlineSuggestion.explanation}</p>
+        <p className="text-xs text-neutral-800 bg-white border border-amber-200 rounded p-2 mb-2 whitespace-pre-wrap">
+          {inlineSuggestion.value}
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onDiscardInlineSuggestion?.()}
+            className="px-2 py-1 text-[11px] rounded border border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50"
+          >
+            Ignorer
+          </button>
+          <button
+            type="button"
+            onClick={() => onKeepInlineSuggestion?.(field, inlineSuggestion.value)}
+            className="px-2 py-1 text-[11px] rounded bg-amber-600 text-white hover:bg-amber-700"
+          >
+            Appliquer
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <form onSubmit={onSubmit} noValidate>
       {/* Form Header */}
+      {!hideHeader && (
       <div className="bg-white rounded-t-xl p-6 border-b border-neutral-200">
         <h2 className="text-neutral-900 mb-2" style={{ fontSize: "25px", fontWeight: 600 }}>
           {isEditMode ? t('title_edit') : t('title_new')}
@@ -142,22 +229,26 @@ export function FormulaireOpportunite({
           {t('subtitle')}
         </p>
       </div>
+      )}
 
       {/* Form Content Body */}
-      <div className="bg-white rounded-b-xl p-8 shadow-sm">
+      <div className={`bg-white p-8 shadow-sm ${hideHeader ? 'rounded-none' : 'rounded-b-xl'}`}>
 
         {/* SECTION 1: General Information */}
         <SectionFormulaire numero="1" titre={t('section1')}>
-          <ChampTexte
-            label={t('intitule_label')}
-            name="intituleAction"
-            value={formData.intituleAction}
-            onChange={(value) => updateField("intituleAction", value)}
-            placeholder={t('intitule_placeholder')}
-            required
-            maxLength={100}
-            helperText={t('intitule_helper')}
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.intituleAction = el; }}>
+            <ChampTexte
+              label={t('intitule_label')}
+              name="intituleAction"
+              value={formData.intituleAction}
+              onChange={(value) => updateField("intituleAction", value)}
+              placeholder={t('intitule_placeholder')}
+              required
+              maxLength={100}
+              helperText={t('intitule_helper')}
+            />
+            {renderInlineSuggestion('intituleAction')}
+          </div>
 
           <ChampFichier
             label={t('photo_label')}
@@ -169,42 +260,51 @@ export function FormulaireOpportunite({
             helperText={t('photo_helper')}
           />
 
-          <ChampSelect
-            label={t('domaine_label')}
-            name="domaineAction"
-            value={formData.domaineAction}
-            onChange={(value) => updateField("domaineAction", value)}
-            options={domaineOptions}
-            placeholder={t('domaine_placeholder')}
-            required
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.domaineAction = el; }}>
+            <ChampSelect
+              label={t('domaine_label')}
+              name="domaineAction"
+              value={formData.domaineAction}
+              onChange={(value) => updateField("domaineAction", value)}
+              options={domaineOptions}
+              placeholder={t('domaine_placeholder')}
+              required
+            />
+            {renderInlineSuggestion('domaineAction')}
+          </div>
         </SectionFormulaire>
 
         {/* SECTION 2: Target audience and timing */}
         <SectionFormulaire numero="2" titre={t('section2')}>
-          <ChampRadio
-            label={t('public_label')}
-            name="publicVise"
-            value={formData.publicVise}
-            onChange={(value) => updateField("publicVise", value)}
-            options={[
-              { value: "tous", label: t('public_tous') },
-              { value: "diaspora", label: t('public_diaspora') },
-            ]}
-            required
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.publicVise = el; }}>
+            <ChampRadio
+              label={t('public_label')}
+              name="publicVise"
+              value={formData.publicVise}
+              onChange={(value) => updateField("publicVise", value)}
+              options={[
+                { value: "tous", label: t('public_tous') },
+                { value: "diaspora", label: t('public_diaspora') },
+              ]}
+              required
+            />
+            {renderInlineSuggestion('publicVise')}
+          </div>
 
-          <ChampRadio
-            label={t('timing_label')}
-            name="timingAction"
-            value={formData.timingAction}
-            onChange={(value) => updateField("timingAction", value)}
-            options={[
-              { value: "permanente", label: t('timing_permanente') },
-              { value: "ponctuelle", label: t('timing_ponctuelle') },
-            ]}
-            required
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.timingAction = el; }}>
+            <ChampRadio
+              label={t('timing_label')}
+              name="timingAction"
+              value={formData.timingAction}
+              onChange={(value) => updateField("timingAction", value)}
+              options={[
+                { value: "permanente", label: t('timing_permanente') },
+                { value: "ponctuelle", label: t('timing_ponctuelle') },
+              ]}
+              required
+            />
+            {renderInlineSuggestion('timingAction')}
+          </div>
 
           {formData.timingAction === "ponctuelle" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -225,17 +325,20 @@ export function FormulaireOpportunite({
             </div>
           )}
 
-          <ChampRadio
-            label={t('urgente_label')}
-            name="missionUrgente"
-            value={formData.missionUrgente}
-            onChange={(value) => updateField("missionUrgente", value)}
-            options={[
-              { value: "oui", label: t('oui') },
-              { value: "non", label: t('non') },
-            ]}
-            required
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.missionUrgente = el; }}>
+            <ChampRadio
+              label={t('urgente_label')}
+              name="missionUrgente"
+              value={formData.missionUrgente}
+              onChange={(value) => updateField("missionUrgente", value)}
+              options={[
+                { value: "oui", label: t('oui') },
+                { value: "non", label: t('non') },
+              ]}
+              required
+            />
+            {renderInlineSuggestion('missionUrgente')}
+          </div>
 
           {formData.missionUrgente === "oui" && (
             <ChampCheckbox
@@ -246,45 +349,54 @@ export function FormulaireOpportunite({
             />
           )}
 
-          <ChampRadio
-            label={t('distance_label')}
-            name="actionDistance"
-            value={formData.actionDistance}
-            onChange={(value) => updateField("actionDistance", value)}
-            options={[
-              { value: "oui", label: t('oui') },
-              { value: "non", label: t('non') },
-              { value: "partiellement", label: t('partiellement') },
-            ]}
-            required
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.actionDistance = el; }}>
+            <ChampRadio
+              label={t('distance_label')}
+              name="actionDistance"
+              value={formData.actionDistance}
+              onChange={(value) => updateField("actionDistance", value)}
+              options={[
+                { value: "oui", label: t('oui') },
+                { value: "non", label: t('non') },
+                { value: "partiellement", label: t('partiellement') },
+              ]}
+              required
+            />
+            {renderInlineSuggestion('actionDistance')}
+          </div>
         </SectionFormulaire>
 
         {/* SECTION 3: Description and impacts */}
         <SectionFormulaire numero="3" titre={t('section3')}>
-          <ChampTextarea
-            label={t('description_label')}
-            name="descriptionGenerale"
-            value={formData.descriptionGenerale}
-            onChange={(value) => updateField("descriptionGenerale", value)}
-            placeholder={t('description_placeholder')}
-            required
-            rows={8}
-            maxLength={2000}
-            helperText={t('description_helper')}
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.descriptionGenerale = el; }}>
+            <ChampTextarea
+              label={t('description_label')}
+              name="descriptionGenerale"
+              value={formData.descriptionGenerale}
+              onChange={(value) => updateField("descriptionGenerale", value)}
+              placeholder={t('description_placeholder')}
+              required
+              rows={8}
+              maxLength={2000}
+              helperText={t('description_helper')}
+            />
+            {renderInlineSuggestion('descriptionGenerale')}
+          </div>
 
-          <ChampTextarea
-            label={t('impacts_label')}
-            name="impactsObjectifs"
-            value={formData.impactsObjectifs}
-            onChange={(value) => updateField("impactsObjectifs", value)}
-            placeholder={t('impacts_placeholder')}
-            required
-            rows={5}
-            maxLength={500}
-            helperText={t('impacts_helper')}
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.impactsObjectifs = el; }}>
+            <ChampTextarea
+              label={t('impacts_label')}
+              name="impactsObjectifs"
+              value={formData.impactsObjectifs}
+              onChange={(value) => updateField("impactsObjectifs", value)}
+              placeholder={t('impacts_placeholder')}
+              required
+              rows={5}
+              maxLength={500}
+              helperText={t('impacts_helper')}
+            />
+            {renderInlineSuggestion('impactsObjectifs')}
+          </div>
 
         </SectionFormulaire>
 
@@ -305,42 +417,51 @@ export function FormulaireOpportunite({
             </div>
           </div>
 
-          <ChampTextarea
-            label={t('contributions_detail_label')}
-            name="detailsContributions"
-            value={formData.detailsContributions}
-            onChange={(value) => updateField("detailsContributions", value)}
-            placeholder={t('contributions_detail_placeholder')}
-            rows={4}
-            maxLength={500}
-            helperText={t('contributions_detail_helper')}
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.detailsContributions = el; }}>
+            <ChampTextarea
+              label={t('contributions_detail_label')}
+              name="detailsContributions"
+              value={formData.detailsContributions}
+              onChange={(value) => updateField("detailsContributions", value)}
+              placeholder={t('contributions_detail_placeholder')}
+              rows={4}
+              maxLength={500}
+              helperText={t('contributions_detail_helper')}
+            />
+            {renderInlineSuggestion('detailsContributions')}
+          </div>
         </SectionFormulaire>
 
         {/* SECTION 5: Mission conditions */}
         <SectionFormulaire numero="5" titre={t('section6')}>
-          <ChampTextarea
-            label={t('conditions_label')}
-            name="conditionsMission"
-            value={formData.conditionsMission}
-            onChange={(v) => updateField("conditionsMission", v)}
-            rows={6}
-            placeholder={t('conditions_placeholder')}
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.conditionsMission = el; }}>
+            <ChampTextarea
+              label={t('conditions_label')}
+              name="conditionsMission"
+              value={formData.conditionsMission}
+              onChange={(v) => updateField("conditionsMission", v)}
+              rows={6}
+              placeholder={t('conditions_placeholder')}
+            />
+            {renderInlineSuggestion('conditionsMission')}
+          </div>
 
-          <ChampRadio
-            label={t('remuneration_label')}
-            name="remunerationPrevue"
-            value={formData.remunerationPrevue}
-            onChange={(v) => updateField("remunerationPrevue", v)}
-            options={[
-              { value: "benevole", label: t('remuneration_benevole') },
-              { value: "remuneration", label: t('remuneration_remuneration') },
-              { value: "defraiement-local", label: t('remuneration_local') },
-              { value: "defraiement-complet", label: t('remuneration_complet') },
-              { value: "autre", label: t('remuneration_autre') },
-            ]}
-          />
+          <div ref={(el) => { if (el) fieldRefs.current.remunerationPrevue = el; }}>
+            <ChampRadio
+              label={t('remuneration_label')}
+              name="remunerationPrevue"
+              value={formData.remunerationPrevue}
+              onChange={(v) => updateField("remunerationPrevue", v)}
+              options={[
+                { value: "benevole", label: t('remuneration_benevole') },
+                { value: "remuneration", label: t('remuneration_remuneration') },
+                { value: "defraiement-local", label: t('remuneration_local') },
+                { value: "defraiement-complet", label: t('remuneration_complet') },
+                { value: "autre", label: t('remuneration_autre') },
+              ]}
+            />
+            {renderInlineSuggestion('remunerationPrevue')}
+          </div>
 
           {formData.remunerationPrevue === "autre" && (
              <ChampTexte
@@ -463,6 +584,7 @@ export function FormulaireOpportunite({
       </div>
 
       {/* FORM FOOTER */}
+      {!hideFooter && (
       <div className="sticky bottom-0 bg-white border-t border-neutral-200 shadow-lg rounded-lg mt-6 p-5 z-20">
         {errorMsg && (
           <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r flex items-center gap-2 mb-4">
@@ -485,6 +607,7 @@ export function FormulaireOpportunite({
           </Bouton>
         </div>
       </div>
+      )}
     </form>
   );
 }
