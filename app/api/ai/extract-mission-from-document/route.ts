@@ -86,7 +86,7 @@ function cleanModelResponse(raw: string) {
   return cleaned.trim();
 }
 
-function normalizeEnum(value?: string, allowed: string[]) {
+function normalizeEnum(value: string | undefined, allowed: string[]) {
   const normalized = (value || '').trim().toLowerCase();
   if (!normalized) return '';
   return allowed.includes(normalized) ? normalized : '';
