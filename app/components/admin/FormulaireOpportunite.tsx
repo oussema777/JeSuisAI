@@ -1,0 +1,490 @@
+'use client';
+
+import React from 'react';
+import {
+  Eye,
+  Save,
+  Loader2,
+  Check,
+  AlertCircle,
+  Plus,
+  Trash2,
+  User
+} from "lucide-react";
+import { useTranslations } from 'next-intl';
+import { SectionFormulaire } from "./SectionFormulaire";
+import { ChampTexte } from "./ChampTexte";
+import { ChampTextarea } from "./ChampTextarea";
+import { ChampSelect } from "./ChampSelect";
+import { ChampCheckbox } from "./ChampCheckbox";
+import { ChampRadio } from "./ChampRadio";
+import { ChampFichier } from "./ChampFichier";
+import { Bouton } from "../ds/Bouton";
+
+export interface FormDataOpportunite {
+  intituleAction: string;
+  photoRepresentation: File[];
+  domaineAction: string;
+  publicVise: string;
+  timingAction: string;
+  missionUrgente: string;
+  dateDebut: string;
+  dateFin: string;
+  afficherUne: boolean;
+  actionDistance: string;
+  descriptionGenerale: string;
+  impactsObjectifs: string;
+  detailsContributions: string;
+  contributionsDiaspora: any;
+  fichierTechnique: File[];
+  lienSiteFB: string;
+  conditionsMission: string;
+  remunerationPrevue: string;
+  remunerationAutre: string;
+  detailRemuneration: string;
+  facilites: any;
+  facilitesAutres: string;
+  contacts: Array<{ nom: string; email: string; tel: string; ordre: number }>;
+  emailsRappel: string;
+  statutPublication: string;
+  datePublication: string;
+}
+
+interface FormulaireOpportuniteProps {
+  formData: FormDataOpportunite;
+  setFormData: React.Dispatch<React.SetStateAction<FormDataOpportunite>>;
+  isSubmitting: boolean;
+  showSuccess: boolean;
+  errorMsg: string;
+  onSubmit: (e: React.FormEvent) => void;
+  onPreview: () => void;
+  submitLabel?: string;
+  isEditMode?: boolean;
+}
+
+export function FormulaireOpportunite({
+  formData,
+  setFormData,
+  isSubmitting,
+  showSuccess,
+  errorMsg,
+  onSubmit,
+  onPreview,
+  submitLabel,
+  isEditMode = false,
+}: FormulaireOpportuniteProps) {
+
+  const t = useTranslations('Admin.MissionForm');
+  const resolvedSubmitLabel = submitLabel || (isEditMode ? t('edit_submit') : t('create_submit'));
+
+  const updateField = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateNestedField = (parent: string, field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [parent]: {
+        ...(prev[parent as keyof FormDataOpportunite] as Record<string, any>),
+        [field]: value,
+      },
+    }));
+  };
+
+  const updateContact = (index: number, field: string, value: string) => {
+    const newContacts = [...formData.contacts];
+    newContacts[index] = { ...newContacts[index], [field]: value };
+    updateField("contacts", newContacts);
+  };
+
+  const addContact = () => {
+    if (formData.contacts.length < 2) {
+      updateField("contacts", [
+        ...formData.contacts,
+        { nom: "", email: "", tel: "", ordre: formData.contacts.length + 1 }
+      ]);
+    }
+  };
+
+  const removeContact = (index: number) => {
+    if (formData.contacts.length > 1) {
+      const newContacts = formData.contacts.filter((_, i) => i !== index);
+      const reordered = newContacts.map((c, i) => ({ ...c, ordre: i + 1 }));
+      updateField("contacts", reordered);
+    }
+  };
+
+  const domaineOptions = [
+    { value: "investissement", label: t('domains.investissement') },
+    { value: "Santé", label: t('domains.sante') },
+    { value: "pauvrete", label: t('domains.pauvrete') },
+    { value: "societe-civile", label: t('domains.societe_civile') },
+    { value: "infrastructures", label: t('domains.infrastructures') },
+    { value: "environnement", label: t('domains.environnement') },
+    { value: "éducation", label: t('domains.education') },
+    { value: "innovation", label: t('domains.innovation') },
+    { value: "recrutement", label: t('domains.recrutement') },
+    { value: "tourisme", label: t('domains.tourisme') },
+    { value: "culture", label: t('domains.culture') },
+    { value: "rayonnement", label: t('domains.rayonnement') },
+    { value: "droits", label: t('domains.droits') },
+    { value: "urgences", label: t('domains.urgences') },
+  ];
+
+  return (
+    <form onSubmit={onSubmit} noValidate>
+      {/* Form Header */}
+      <div className="bg-white rounded-t-xl p-6 border-b border-neutral-200">
+        <h2 className="text-neutral-900 mb-2" style={{ fontSize: "25px", fontWeight: 600 }}>
+          {isEditMode ? t('title_edit') : t('title_new')}
+        </h2>
+        <p className="text-neutral-600" style={{ fontSize: "14px", fontWeight: 400 }}>
+          {t('subtitle')}
+        </p>
+      </div>
+
+      {/* Form Content Body */}
+      <div className="bg-white rounded-b-xl p-8 shadow-sm">
+
+        {/* SECTION 1: General Information */}
+        <SectionFormulaire numero="1" titre={t('section1')}>
+          <ChampTexte
+            label={t('intitule_label')}
+            name="intituleAction"
+            value={formData.intituleAction}
+            onChange={(value) => updateField("intituleAction", value)}
+            placeholder={t('intitule_placeholder')}
+            required
+            maxLength={100}
+            helperText={t('intitule_helper')}
+          />
+
+          <ChampFichier
+            label={t('photo_label')}
+            name="photoRepresentation"
+            files={formData.photoRepresentation}
+            onChange={(files) => updateField("photoRepresentation", files)}
+            accept="image/jpeg,image/png"
+            maxSize={5}
+            helperText={t('photo_helper')}
+          />
+
+          <ChampSelect
+            label={t('domaine_label')}
+            name="domaineAction"
+            value={formData.domaineAction}
+            onChange={(value) => updateField("domaineAction", value)}
+            options={domaineOptions}
+            placeholder={t('domaine_placeholder')}
+            required
+          />
+        </SectionFormulaire>
+
+        {/* SECTION 2: Target audience and timing */}
+        <SectionFormulaire numero="2" titre={t('section2')}>
+          <ChampRadio
+            label={t('public_label')}
+            name="publicVise"
+            value={formData.publicVise}
+            onChange={(value) => updateField("publicVise", value)}
+            options={[
+              { value: "tous", label: t('public_tous') },
+              { value: "diaspora", label: t('public_diaspora') },
+            ]}
+            required
+          />
+
+          <ChampRadio
+            label={t('timing_label')}
+            name="timingAction"
+            value={formData.timingAction}
+            onChange={(value) => updateField("timingAction", value)}
+            options={[
+              { value: "permanente", label: t('timing_permanente') },
+              { value: "ponctuelle", label: t('timing_ponctuelle') },
+            ]}
+            required
+          />
+
+          {formData.timingAction === "ponctuelle" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ChampTexte
+                label={t('date_debut')}
+                name="dateDebut"
+                type="date"
+                value={formData.dateDebut}
+                onChange={(v) => updateField("dateDebut", v)}
+              />
+              <ChampTexte
+                label={t('date_fin')}
+                name="dateFin"
+                type="date"
+                value={formData.dateFin}
+                onChange={(v) => updateField("dateFin", v)}
+              />
+            </div>
+          )}
+
+          <ChampRadio
+            label={t('urgente_label')}
+            name="missionUrgente"
+            value={formData.missionUrgente}
+            onChange={(value) => updateField("missionUrgente", value)}
+            options={[
+              { value: "oui", label: t('oui') },
+              { value: "non", label: t('non') },
+            ]}
+            required
+          />
+
+          {formData.missionUrgente === "oui" && (
+            <ChampCheckbox
+              label={t('afficher_une')}
+              name="afficherUne"
+              checked={formData.afficherUne}
+              onChange={(c) => updateField("afficherUne", c)}
+            />
+          )}
+
+          <ChampRadio
+            label={t('distance_label')}
+            name="actionDistance"
+            value={formData.actionDistance}
+            onChange={(value) => updateField("actionDistance", value)}
+            options={[
+              { value: "oui", label: t('oui') },
+              { value: "non", label: t('non') },
+              { value: "partiellement", label: t('partiellement') },
+            ]}
+            required
+          />
+        </SectionFormulaire>
+
+        {/* SECTION 3: Description and impacts */}
+        <SectionFormulaire numero="3" titre={t('section3')}>
+          <ChampTextarea
+            label={t('description_label')}
+            name="descriptionGenerale"
+            value={formData.descriptionGenerale}
+            onChange={(value) => updateField("descriptionGenerale", value)}
+            placeholder={t('description_placeholder')}
+            required
+            rows={8}
+            maxLength={2000}
+            helperText={t('description_helper')}
+          />
+
+          <ChampTextarea
+            label={t('impacts_label')}
+            name="impactsObjectifs"
+            value={formData.impactsObjectifs}
+            onChange={(value) => updateField("impactsObjectifs", value)}
+            placeholder={t('impacts_placeholder')}
+            required
+            rows={5}
+            maxLength={500}
+            helperText={t('impacts_helper')}
+          />
+
+        </SectionFormulaire>
+
+        {/* SECTION 4: Diaspora contributions */}
+        <SectionFormulaire numero="4" titre={t('section4')}>
+          <div>
+            <label className="text-neutral-900 mb-3 block" style={{ fontSize: "14px", fontWeight: 500 }}>
+              {t('contributions_label')} <span className="text-accent">*</span>
+            </label>
+
+            <div className="space-y-3">
+              <ChampCheckbox label={t('contrib_investissement')} name="investissement" checked={formData.contributionsDiaspora.investissement} onChange={(c) => updateNestedField("contributionsDiaspora", "investissement", c)} />
+              <ChampCheckbox label={t('contrib_epargne')} name="epargne" checked={formData.contributionsDiaspora.epargne} onChange={(c) => updateNestedField("contributionsDiaspora", "epargne", c)} />
+              <ChampCheckbox label={t('contrib_competences')} name="competences" checked={formData.contributionsDiaspora.competences} onChange={(c) => updateNestedField("contributionsDiaspora", "competences", c)} />
+              <ChampCheckbox label={t('contrib_dons')} name="dons" checked={formData.contributionsDiaspora.dons} onChange={(c) => updateNestedField("contributionsDiaspora", "dons", c)} />
+              <ChampCheckbox label={t('contrib_reseaux')} name="reseauxInfluence" checked={formData.contributionsDiaspora.reseauxInfluence} onChange={(c) => updateNestedField("contributionsDiaspora", "reseauxInfluence", c)} />
+              <ChampCheckbox label={t('contrib_achats')} name="achatsTourisme" checked={formData.contributionsDiaspora.achatsTourisme} onChange={(c) => updateNestedField("contributionsDiaspora", "achatsTourisme", c)} />
+            </div>
+          </div>
+
+          <ChampTextarea
+            label={t('contributions_detail_label')}
+            name="detailsContributions"
+            value={formData.detailsContributions}
+            onChange={(value) => updateField("detailsContributions", value)}
+            placeholder={t('contributions_detail_placeholder')}
+            rows={4}
+            maxLength={500}
+            helperText={t('contributions_detail_helper')}
+          />
+        </SectionFormulaire>
+
+        {/* SECTION 5: Mission conditions */}
+        <SectionFormulaire numero="5" titre={t('section6')}>
+          <ChampTextarea
+            label={t('conditions_label')}
+            name="conditionsMission"
+            value={formData.conditionsMission}
+            onChange={(v) => updateField("conditionsMission", v)}
+            rows={6}
+            placeholder={t('conditions_placeholder')}
+          />
+
+          <ChampRadio
+            label={t('remuneration_label')}
+            name="remunerationPrevue"
+            value={formData.remunerationPrevue}
+            onChange={(v) => updateField("remunerationPrevue", v)}
+            options={[
+              { value: "benevole", label: t('remuneration_benevole') },
+              { value: "remuneration", label: t('remuneration_remuneration') },
+              { value: "defraiement-local", label: t('remuneration_local') },
+              { value: "defraiement-complet", label: t('remuneration_complet') },
+              { value: "autre", label: t('remuneration_autre') },
+            ]}
+          />
+
+          {formData.remunerationPrevue === "autre" && (
+             <ChampTexte
+              label={t('remuneration_autre_label')}
+              name="remunerationAutre"
+              value={formData.remunerationAutre}
+              onChange={(v) => updateField("remunerationAutre", v)}
+            />
+          )}
+
+          <ChampTextarea
+            label={t('detail_remuneration_label')}
+            name="detailRemuneration"
+            value={formData.detailRemuneration}
+            onChange={(v) => updateField("detailRemuneration", v)}
+            rows={4}
+            placeholder={t('detail_remuneration_placeholder')}
+          />
+        </SectionFormulaire>
+
+        {/* SECTION 6: Facilities */}
+        <SectionFormulaire numero="6" titre={t('section7')}>
+          <div>
+            <label className="text-neutral-900 mb-3 block" style={{ fontSize: "14px", fontWeight: 500 }}>
+              {t('facilites_label')} <span className="text-accent">*</span>
+            </label>
+            <div className="space-y-2">
+              <ChampCheckbox label={t('facilite_interlocuteur')} name="interlocuteur" checked={formData.facilites.interlocuteur} onChange={(c) => updateNestedField("facilites", "interlocuteur", c)} />
+              <ChampCheckbox label={t('facilite_distance')} name="travailDistance" checked={formData.facilites.travailDistance} onChange={(c) => updateNestedField("facilites", "travailDistance", c)} />
+              <ChampCheckbox label={t('facilite_assistance')} name="assistanceProjet" checked={formData.facilites.assistanceProjet} onChange={(c) => updateNestedField("facilites", "assistanceProjet", c)} />
+              <ChampCheckbox label={t('facilite_locaux')} name="locauxMateriels" checked={formData.facilites.locauxMateriels} onChange={(c) => updateNestedField("facilites", "locauxMateriels", c)} />
+              <ChampCheckbox label={t('facilite_prestataires')} name="reseauPrestataires" checked={formData.facilites.reseauPrestataires} onChange={(c) => updateNestedField("facilites", "reseauPrestataires", c)} />
+              <ChampCheckbox label={t('facilite_autres')} name="autres" checked={formData.facilites.autres} onChange={(c) => updateNestedField("facilites", "autres", c)} />
+            </div>
+
+            {formData.facilites.autres && (
+              <div className="mt-3">
+                <ChampTexte label={t('facilite_autres_label')} name="facilitesAutres" value={formData.facilitesAutres} onChange={(v) => updateField("facilitesAutres", v)} />
+              </div>
+            )}
+          </div>
+        </SectionFormulaire>
+
+        {/* SECTION 7: Documents and links */}
+        <SectionFormulaire numero="7" titre={t('section5')}>
+          <ChampFichier
+              label={t('fichier_label')}
+              name="fichierTechnique"
+              files={formData.fichierTechnique}
+              onChange={(files) => updateField("fichierTechnique", files)}
+              accept=".pdf,.doc,.docx"
+              multiple
+              helperText={t('fichier_helper')}
+          />
+
+          <ChampTexte
+            label={t('lien_label')}
+            name="lienSiteFB"
+            value={formData.lienSiteFB}
+            onChange={(v) => updateField("lienSiteFB", v)}
+            placeholder="https://..."
+          />
+        </SectionFormulaire>
+
+        {/* SECTION 8: Additional contact */}
+        <SectionFormulaire numero="8" titre={t('section8')}>
+          <div className="space-y-6">
+            {formData.contacts.map((contact, index) => (
+              <div key={index} className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 relative">
+                 <div className="flex items-center gap-2 mb-4">
+                    <User className="w-4 h-4 text-accent" />
+                    <h4 className="font-semibold text-sm text-neutral-800">{t('contact_title', { number: index + 1 })}</h4>
+                    {formData.contacts.length > 1 && (
+                      <button type="button" onClick={() => removeContact(index)} className="ml-auto text-red-500 hover:text-red-700 text-sm flex items-center gap-1">
+                        <Trash2 className="w-4 h-4" /> {t('contact_supprimer')}
+                      </button>
+                    )}
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <ChampTexte label={t('contact_nom')} name={`c-nom-${index}`} value={contact.nom} onChange={(val) => updateContact(index, 'nom', val)} />
+                   <ChampTexte label={t('contact_email')} name={`c-email-${index}`} value={contact.email} onChange={(val) => updateContact(index, 'email', val)} />
+                   <ChampTexte label={t('contact_tel')} name={`c-tel-${index}`} value={contact.tel} onChange={(val) => updateContact(index, 'tel', val)} />
+                 </div>
+              </div>
+            ))}
+            {formData.contacts.length < 2 && (
+              <button type="button" onClick={addContact} className="w-full py-3 border-2 border-dashed border-neutral-300 rounded-lg text-neutral-600 hover:border-accent hover:text-accent transition-colors flex items-center justify-center gap-2 font-medium">
+                <Plus className="w-5 h-5" /> {t('contact_ajouter')}
+              </button>
+            )}
+          </div>
+
+          <ChampTexte
+            label={t('emails_label')}
+            name="emailsRappel"
+            value={formData.emailsRappel}
+            onChange={(v) => updateField("emailsRappel", v)}
+            placeholder={t('emails_placeholder')}
+            helperText={t('emails_helper')}
+          />
+        </SectionFormulaire>
+
+        {/* SECTION 9: Publication */}
+        <SectionFormulaire numero="9" titre={t('section9')}>
+          <ChampRadio
+            label={t('statut_label')}
+            name="statutPublication"
+            value={formData.statutPublication}
+            onChange={(v) => updateField("statutPublication", v)}
+            options={[
+              { value: "brouillon", label: t('statut_brouillon') },
+              { value: "publie", label: t('statut_publie') },
+              { value: "programme", label: t('statut_programme') },
+            ]}
+          />
+          {formData.statutPublication === "programme" && (
+             <ChampTexte label={t('date_publication')} name="datePublication" type="datetime-local" value={formData.datePublication} onChange={(v) => updateField("datePublication", v)} />
+          )}
+        </SectionFormulaire>
+      </div>
+
+      {/* FORM FOOTER */}
+      <div className="sticky bottom-0 bg-white border-t border-neutral-200 shadow-lg rounded-lg mt-6 p-5 z-20">
+        {errorMsg && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r flex items-center gap-2 mb-4">
+            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+            <span className="text-red-700 text-sm font-medium">{errorMsg}</span>
+          </div>
+        )}
+        {showSuccess && (
+          <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded-r flex items-center gap-2 mb-4">
+            <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
+            <span className="text-green-700 text-sm font-medium">
+              {isEditMode ? t('success_update') : t('success_create')}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <Bouton variant="secondaire" size="moyen" icon={<Eye className="w-5 h-5" />} disabled={isSubmitting} type="button" onClick={onPreview}>{t('btn_preview')}</Bouton>
+          <Bouton variant="primaire" size="moyen" icon={isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (showSuccess ? <Check className="w-5 h-5"/> : <Save className="w-5 h-5" />)} type="submit" disabled={isSubmitting}>
+            {isSubmitting ? t('btn_saving') : showSuccess ? t('btn_saved') : resolvedSubmitLabel}
+          </Bouton>
+        </div>
+      </div>
+    </form>
+  );
+}

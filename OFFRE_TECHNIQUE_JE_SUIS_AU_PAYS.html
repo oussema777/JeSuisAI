@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MASTER TECHNICAL SPECIFICATION - JE SUIS AU PAYS (V2.0)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;600;700;800&display=swap');
+
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --gray-light: #f9f9f9;
+            --gray-mid: #eeeeee;
+            --gray-dark: #666666;
+            --accent: #000000;
+            --code-bg: #1e1e1e;
+            --code-text: #d4d4d4;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.5;
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            background: #f0f0f0;
+        }
+
+        .document {
+            max-width: 1000px;
+            margin: 40px auto;
+            background: var(--bg);
+            padding: 60px 80px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+        }
+
+        header {
+            border-bottom: 4px solid var(--text);
+            padding-bottom: 20px;
+            margin-bottom: 50px;
+        }
+
+        .doc-type {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--gray-dark);
+        }
+
+        h1 {
+            font-size: 38px;
+            font-weight: 800;
+            margin: 10px 0;
+            letter-spacing: -2px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            font-size: 11px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-top: 60px;
+            border-top: 1px solid var(--gray-mid);
+            padding-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: "§";
+            margin-right: 15px;
+            color: var(--gray-dark);
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-top: 30px;
+            color: var(--gray-dark);
+        }
+
+        p, li {
+            font-size: 14px;
+            color: #333;
+            max-width: 800px;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--gray-light);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            line-height: 1.4;
+            margin: 20px 0;
+        }
+
+        .tech-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+
+        .tech-table th {
+            text-align: left;
+            background: var(--gray-light);
+            padding: 12px;
+            border-bottom: 2px solid var(--text);
+            text-transform: uppercase;
+            font-weight: 800;
+            font-size: 11px;
+        }
+
+        .tech-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--gray-mid);
+            vertical-align: top;
+        }
+
+        .diagram {
+            background: var(--gray-light);
+            border: 1px solid var(--gray-mid);
+            padding: 30px;
+            text-align: center;
+            margin: 30px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 800;
+            background: var(--text);
+            color: white;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        .impact-list {
+            background: #fffbe6;
+            border-left: 4px solid #ffe58f;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        footer {
+            margin-top: 100px;
+            padding-top: 20px;
+            border-top: 1px solid var(--gray-mid);
+            font-size: 10px;
+            color: var(--gray-dark);
+            text-align: center;
+        }
+
+        @media print {
+            body { background: white; }
+            .document { box-shadow: none; margin: 0; width: 100%; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="document">
+    <header>
+        <div class="doc-type">Architectural Blueprint / Technical Specification</div>
+        <h1>Je Suis Au Pays (v2.0 Global)</h1>
+        <div class="meta-grid">
+            <div><strong>Status</strong><br>DRAFT / SPECIFICATION</div>
+            <div><strong>Version</strong><br>2026.1.0</div>
+            <div><strong>Owner</strong><br>iLab TN Architecture</div>
+            <div><strong>Priority</strong><br>CRITICAL</div>
+        </div>
+    </header>
+
+    <div class="status-badge">Phase: Conceptual Engineering</div>
+
+    <h2>1. Executive Summary & Scope</h2>
+    <p>
+        The objective of this engineering cycle is to pivot the current <b>Je Suis Au Cameroun</b> (JSAC) monolith into a <b>Multi-Tenant Regionalized Platform</b> (JSAP). 
+        The system must support N-countries through a single core engine, with strict data isolation, dynamic regionalization, and multi-domain mapping.
+    </p>
+
+    <h2>2. System Architecture Design</h2>
+    <div class="diagram">
+        [HTTP REQUEST] -> [NEXT.JS MIDDLEWARE (Domain/Path Detection)] <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;V <br>
+        [TENANT CONTEXT INJECTION (CountryID, Locale, Theme)] <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+---> [API / DATABASE (RLS Filtered by CountryID)] <br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+---> [UI LAYER (Themed via CSS Variables)]
+    </div>
+
+    <h2>3. Database Schema Evolution (Supabase)</h2>
+    <p>A new <code>countries</code> metadata table is required to drive the entire regionalization engine.</p>
+    
+    <table class="tech-table">
+        <thead>
+            <tr>
+                <th>Table</th>
+                <th>New Column / Action</th>
+                <th>Technical Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>countries</code></td>
+                <td>(New Table)</td>
+                <td>Stores: <code>id</code>, <code>slug</code>, <code>iso_code</code>, <code>domain_alias</code>, <code>theme_config</code> (JSON).</td>
+            </tr>
+            <tr>
+                <td><code>opportunites</code></td>
+                <td><code>country_id</code> (FK)</td>
+                <td>Mandatory for mission isolation.</td>
+            </tr>
+            <tr>
+                <td><code>profiles</code></td>
+                <td><code>country_id</code> (FK)</td>
+                <td>Users are tied to their primary regional registration.</td>
+            </tr>
+            <tr>
+                <td><code>actualites</code></td>
+                <td><code>country_id</code> (FK)</td>
+                <td>News feeds filtered by region.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>SQL: Security Hardening (RLS)</h3>
+    <pre>
+-- Example of Row Level Security for Multi-Tenancy
+ALTER TABLE public.opportunites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can only see missions for their country" 
+ON public.opportunites
+FOR SELECT 
+USING (country_id = (SELECT country_id FROM profiles WHERE id = auth.uid()));
+    </pre>
+
+    <h2>4. Routing Strategy & Domain Mapping</h2>
+    <p>We will implement a hybrid routing strategy using Next.js Middleware to handle both <b>Path-based</b> and <b>Domain-based</b> access.</p>
+
+    <table class="tech-table">
+        <thead>
+            <tr>
+                <th>Source Domain</th>
+                <th>Detected Tenant</th>
+                <th>Final Internal URL</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>jesuisaucameroun.com</code></td>
+                <td>Cameroun</td>
+                <td><code>/cm/fr/*</code></td>
+            </tr>
+            <tr>
+                <td><code>jesuisautunisie.com</code></td>
+                <td>Tunisie</td>
+                <td><code>/tn/fr/*</code></td>
+            </tr>
+            <tr>
+                <td><code>jesuisaupays.com/cm</code></td>
+                <td>Cameroun</td>
+                <td><code>/cm/fr/*</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Middleware Implementation Logic</h3>
+    <pre>
+// middleware.ts (Pseudo-code)
+export function middleware(req) {
+  const hostname = req.headers.get('host');
+  const tenant = await getTenantByDomain(hostname) || getTenantByPath(req.nextUrl.pathname);
+  
+  if (tenant) {
+    return NextResponse.rewrite(new URL(`/${tenant.slug}${req.nextUrl.pathname}`, req.url));
+  }
+}
+    </pre>
+
+    <h2>5. Dynamic Theme Engine (CSS-in-DB)</h2>
+    <p>Branding will no longer be hardcoded. It will be injected as CSS variables at the Layout level.</p>
+    <pre>
+/* The Layout will inject these based on the Tenant Config */
+:root {
+  --primary-color: ${tenant.theme.primary};
+  --secondary-color: ${tenant.theme.secondary};
+  --hero-image: url('${tenant.theme.hero}');
+}
+    </pre>
+
+    <h2>6. Implementation Roadmap (The 8-Week Plan)</h2>
+    
+    <table class="tech-table">
+        <thead>
+            <tr>
+                <th>Week</th>
+                <th>Phase</th>
+                <th>Deliverables</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>W1-W2</td>
+                <td><b>Core Engine</b></td>
+                <td>Supabase schema migration, RLS policies, Countries metadata table.</td>
+            </tr>
+            <tr>
+                <td>W3</td>
+                <td><b>Edge Layer</b></td>
+                <td>Next.js Middleware for domain detection and URL rewriting.</td>
+            </tr>
+            <tr>
+                <td>W4</td>
+                <td><b>Tenant Provider</b></td>
+                <td>React Context for Global Tenant State (Theme, Config, Assets).</td>
+            </tr>
+            <tr>
+                <td>W5</td>
+                <td><b>Global Admin</b></td>
+                <td>Superadmin upgrade to manage multiple countries from one UI.</td>
+            </tr>
+            <tr>
+                <td>W6-W7</td>
+                <td><b>Data Migration</b></td>
+                <td>Converting current JSAC data into JSAP-CM (Cameroon) tenant data.</td>
+            </tr>
+            <tr>
+                <td>W8</td>
+                <td><b>QA & SEO</b></td>
+                <td>Domain testing, 301 redirects, Google Search Console regional setup.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>7. Risk Assessment & Mitigation</h2>
+    <div class="impact-list">
+        <strong>Risk: SEO Dilution</strong><br>
+        <i>Mitigation:</i> Strict 301 permanent redirects from old domains to new sub-paths to preserve "Link Juice". <br><br>
+        <strong>Risk: Data Cross-Leakage</strong><br>
+        <i>Mitigation:</i> Database-level RLS policies that act as a hard firewall even if the frontend fails.
+    </div>
+
+    <footer>
+        &copy; 2026 iLab TN Architecture Group. All technical specs are proprietary and confidential.
+    </footer>
+</div>
+
+</body>
+</html>

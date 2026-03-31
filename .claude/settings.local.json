@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(xargs grep:*)",
+      "Bash(npx next:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(npx supabase:*)",
+      "Bash(ls:*)",
+      "Bash(pushd:*)",
+      "Bash(npx.cmd tsc:*)",
+      "Bash(grep:*)",
+      "Bash(mkdir:*)",
+      "Bash(GIT_DIR=\"/c/Users/Marketing Manager/Desktop/Agent X/JeSuis/Code V1.1.0/jeSuis-AI/.git\" GIT_WORK_TREE=\"/c/Users/Marketing Manager/Desktop/Agent X/JeSuis/Code V1.1.0/jeSuis-AI\" git status:*)",
+      "Bash(export:*)"
+    ]
+  }
+}

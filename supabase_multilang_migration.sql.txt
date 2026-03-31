@@ -1,0 +1,26 @@
+-- SQL MIGRATION: ADD MULTI-LANGUAGE SUPPORT
+-- Run this in your Supabase SQL Editor
+
+-- 1. Add lang column to static_contents
+ALTER TABLE static_contents ADD COLUMN lang TEXT DEFAULT 'fr';
+-- Set existing data to 'fr'
+UPDATE static_contents SET lang = 'fr';
+
+-- 2. Add lang column to opportunites (Missions)
+ALTER TABLE opportunites ADD COLUMN lang TEXT DEFAULT 'fr';
+UPDATE opportunites SET lang = 'fr';
+
+-- 3. Add lang column to actualites (News)
+ALTER TABLE actualites ADD COLUMN lang TEXT DEFAULT 'fr';
+UPDATE actualites SET lang = 'fr';
+
+-- 4. Update Unique Constraints for static_contents
+-- This allows having the same key (e.g., 'landing-page') for different languages
+-- Note: We drop the old single-key unique constraint and create a composite one (key + lang)
+ALTER TABLE static_contents DROP CONSTRAINT IF EXISTS static_contents_key_key;
+ALTER TABLE static_contents ADD CONSTRAINT static_contents_key_lang_unique UNIQUE (key, lang);
+
+-- 5. Indexing for performance
+CREATE INDEX IF NOT EXISTS idx_static_contents_lang ON static_contents(lang);
+CREATE INDEX IF NOT EXISTS idx_opportunites_lang ON opportunites(lang);
+CREATE INDEX IF NOT EXISTS idx_actualites_lang ON actualites(lang);

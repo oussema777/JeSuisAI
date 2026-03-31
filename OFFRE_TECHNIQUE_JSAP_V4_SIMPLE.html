@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offre Technique — Je Suis Au Pays</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --blue: #2563eb;
+            --green: #059669;
+            --amber: #d97706;
+            --gray-100: #f5f5f5;
+            --gray-200: #e5e5e5;
+            --gray-400: #a3a3a3;
+            --gray-500: #737373;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.8;
+            color: #1a1a1a;
+            background: #e8e8e8;
+        }
+
+        .doc {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            box-shadow: 0 1px 50px rgba(0,0,0,0.08);
+        }
+
+        /* COVER */
+        .cover {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: white;
+            padding: 70px 60px 50px;
+        }
+        .cover-label {
+            font-size: 11px; font-weight: 600; letter-spacing: 4px;
+            text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 24px;
+        }
+        .cover h1 { font-size: 40px; font-weight: 900; letter-spacing: -2px; line-height: 1.1; margin-bottom: 10px; }
+        .cover h1 span { background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .cover-sub { font-size: 17px; color: rgba(255,255,255,0.55); margin-bottom: 40px; }
+        .cover-meta { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 24px; font-size: 13px; }
+        .cover-meta strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.3); margin-bottom: 3px; }
+
+        /* CONTENT */
+        .content { padding: 50px 60px 60px; }
+
+        .section { margin-bottom: 50px; }
+        .section-num { font-size: 11px; font-weight: 700; color: var(--blue); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+        h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 16px; }
+        p { font-size: 15px; color: #444; margin-bottom: 14px; max-width: 800px; }
+        ul { padding-left: 20px; margin-bottom: 14px; }
+        li { font-size: 15px; color: #444; margin-bottom: 6px; }
+        .divider { height: 1px; background: var(--gray-200); margin: 50px 0; }
+
+        /* CARDS */
+        .cards { display: grid; gap: 14px; margin: 20px 0; }
+        .cards-2 { grid-template-columns: 1fr 1fr; }
+        .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .card { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 12px; padding: 22px; }
+        .card .icon { font-size: 28px; margin-bottom: 10px; }
+        .card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+        .card p { font-size: 13px; color: var(--gray-500); margin: 0; }
+
+        /* BEFORE/AFTER */
+        .ba { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: stretch; margin: 24px 0; }
+        .ba-col { border-radius: 12px; padding: 24px; }
+        .ba-before { background: var(--gray-100); border: 1px solid var(--gray-200); }
+        .ba-arrow { display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--gray-400); }
+        .ba-after { background: #ecfdf5; border: 1px solid #a7f3d0; }
+        .ba-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+        .ba-before .ba-label { color: var(--gray-400); }
+        .ba-after .ba-label { color: var(--green); }
+        .ba-col ul { list-style: none; padding: 0; }
+        .ba-col li { font-size: 14px; padding: 5px 0; display: flex; gap: 8px; }
+        .ba-before li::before { content: '\2014'; color: var(--gray-400); }
+        .ba-after li::before { content: '\2713'; color: var(--green); font-weight: 700; }
+
+        /* CALLOUT */
+        .note { border-radius: 12px; padding: 22px 26px; margin: 20px 0; font-size: 14px; }
+        .note-blue { background: #eff6ff; border: 1px solid #bfdbfe; }
+        .note-green { background: #ecfdf5; border: 1px solid #a7f3d0; }
+        .note-amber { background: #fffbeb; border: 1px solid #fde68a; }
+        .note strong { display: block; margin-bottom: 4px; }
+        .note p { font-size: 13.5px; margin: 0; color: #555; }
+
+        /* MOCKUP */
+        .mockup { background: #1e293b; border-radius: 12px; overflow: hidden; margin: 20px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+        .mockup-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(0,0,0,0.2); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot-r { background: #ef4444; } .dot-y { background: #f59e0b; } .dot-g { background: #22c55e; }
+        .mockup-url { flex: 1; background: rgba(255,255,255,0.1); border-radius: 5px; padding: 5px 14px; font-size: 12px; color: rgba(255,255,255,0.6); }
+        .mockup-body { padding: 24px; background: white; }
+        .mockup-hero { background: linear-gradient(135deg, #1e40af, #7c3aed); border-radius: 10px; padding: 30px; text-align: center; color: white; margin-bottom: 16px; }
+        .mockup-hero h3 { color: white; font-size: 20px; margin: 0 0 6px; }
+        .mockup-hero p { color: rgba(255,255,255,0.7); font-size: 13px; margin: 0; }
+        .countries { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+        .country { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 10px; padding: 16px; text-align: center; }
+        .country .flag { font-size: 28px; margin-bottom: 6px; }
+        .country .name { font-size: 13px; font-weight: 700; }
+
+        /* TABLE */
+        .tbl { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        .tbl th { text-align: left; padding: 12px 16px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--gray-200); color: var(--gray-500); font-weight: 700; }
+        .tbl td { padding: 12px 16px; border-bottom: 1px solid var(--gray-100); }
+        .tbl .label { font-weight: 600; }
+
+        /* TOTAL */
+        .total {
+            background: #0f172a; color: white; border-radius: 14px;
+            padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; margin: 24px 0;
+        }
+        .total .lbl { font-size: 14px; color: rgba(255,255,255,0.6); }
+        .total .val { font-size: 34px; font-weight: 900; }
+        .total .sub { font-size: 13px; color: rgba(255,255,255,0.4); }
+
+        /* FOOTER */
+        footer { background: var(--gray-100); border-top: 1px solid var(--gray-200); padding: 24px 60px; text-align: center; font-size: 11px; color: var(--gray-400); line-height: 1.8; }
+
+        @media print {
+            body { background: white; }
+            .doc { box-shadow: none; margin: 0; max-width: 100%; }
+            .cover { break-after: page; }
+            .section { break-inside: avoid; }
+        }
+        @media (max-width: 768px) {
+            .cover, .content { padding: 30px 24px; }
+            .cover h1 { font-size: 26px; }
+            .cover-meta { grid-template-columns: 1fr 1fr; }
+            .cards-2, .cards-3 { grid-template-columns: 1fr; }
+            .ba { grid-template-columns: 1fr; }
+            .ba-arrow { transform: rotate(90deg); padding: 10px 0; }
+            .countries { grid-template-columns: 1fr 1fr; }
+            .total { flex-direction: column; text-align: center; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="doc">
+
+    <!-- COVER -->
+    <div class="cover">
+        <div class="cover-label">Offre Technique</div>
+        <h1>Je Suis Au <span>Pays</span></h1>
+        <div class="cover-sub">Transformer votre site en une plateforme qui accueille plusieurs pays.</div>
+        <div class="cover-meta">
+            <div><strong>Client</strong>Je Suis Au Cameroun</div>
+            <div><strong>Prestataire</strong>iLab TN</div>
+            <div><strong>Date</strong>Mars 2026</div>
+            <div><strong>Version</strong>4.0</div>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+        <!-- ===== 1. LE PROJET EN BREF ===== -->
+        <div class="section">
+            <div class="section-num">01 &mdash; Le projet</div>
+            <h2>Qu'est-ce qu'on va faire ?</h2>
+
+            <p>
+                Aujourd'hui, votre site <b>jesuisaucameroun.com</b> sert uniquement le Cameroun.
+            </p>
+            <p>
+                Nous allons le transformer en <b>jesuisaupays.com</b> &mdash; un site capable d'accueillir <b>le Cameroun, la Tunisie, la C&ocirc;te d'Ivoire</b>, et autant de pays que vous voulez.
+            </p>
+            <p>
+                Chaque pays aura <b>son propre espace</b> (son logo, ses couleurs, ses missions), mais tous partagent le m&ecirc;me site.
+            </p>
+
+            <div class="ba">
+                <div class="ba-col ba-before">
+                    <div class="ba-label">Aujourd'hui</div>
+                    <ul>
+                        <li>Un seul pays : Cameroun</li>
+                        <li>Une adresse : jesuisaucameroun.com</li>
+                        <li>Impossible d'ajouter un autre pays</li>
+                    </ul>
+                </div>
+                <div class="ba-arrow">&rarr;</div>
+                <div class="ba-col ba-after">
+                    <div class="ba-label">Demain</div>
+                    <ul>
+                        <li>Autant de pays que vous voulez</li>
+                        <li>Un portail : jesuisaupays.com</li>
+                        <li>Ajouter un pays = quelques clics</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="note note-green">
+                <strong>&#x2705; Vos donn&eacute;es sont en s&eacute;curit&eacute;</strong>
+                <p>Toutes vos missions, candidatures, profils et comptes existants restent intacts. <b>Rien n'est supprim&eacute;.</b> Votre site reste en ligne pendant les travaux.</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ===== 2. CE QUE VERRONT LES VISITEURS ===== -->
+        <div class="section">
+            <div class="section-num">02 &mdash; Le r&eacute;sultat</div>
+            <h2>Ce que verront vos visiteurs</h2>
+
+            <p>Un visiteur arrive sur <b>jesuisaupays.com</b> et voit tous les pays disponibles. Il clique sur celui qui l'int&eacute;resse.</p>
+
+            <div class="mockup">
+                <div class="mockup-bar">
+                    <span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span>
+                    <div class="mockup-url">jesuisaupays.com</div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-hero">
+                        <h3>Je Suis Au Pays</h3>
+                        <p>Votre passerelle vers les opportunit&eacute;s de la diaspora</p>
+                    </div>
+                    <div class="countries">
+                        <div class="country"><div class="flag">&#x1F1E8;&#x1F1F2;</div><div class="name">Cameroun</div></div>
+                        <div class="country"><div class="flag">&#x1F1F9;&#x1F1F3;</div><div class="name">Tunisie</div></div>
+                        <div class="country"><div class="flag">&#x1F1E8;&#x1F1EE;</div><div class="name">C&ocirc;te d'Ivoire</div></div>
+                        <div class="country"><div class="flag">&#x1F1F8;&#x1F1F3;</div><div class="name">S&eacute;n&eacute;gal</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <p>Chaque pays a :</p>
+            <div class="cards cards-3">
+                <div class="card">
+                    <div class="icon">&#x1F3A8;</div>
+                    <h4>Son propre look</h4>
+                    <p>Logo, couleurs, images</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F4CB;</div>
+                    <h4>Ses missions</h4>
+                    <p>S&eacute;par&eacute;es par pays</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F4F0;</div>
+                    <h4>Ses actualit&eacute;s</h4>
+                    <p>Contenu ind&eacute;pendant</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F4E7;</div>
+                    <h4>Ses emails</h4>
+                    <p>Nom et logo du pays</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F310;</div>
+                    <h4>Ses langues</h4>
+                    <p>FR/EN, FR/AR...</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F512;</div>
+                    <h4>Ses donn&eacute;es prot&eacute;g&eacute;es</h4>
+                    <p>Invisibles aux autres pays</p>
+                </div>
+            </div>
+
+            <div class="note note-blue">
+                <strong>&#x1F517; Vos anciens liens fonctionnent toujours</strong>
+                <p><b>jesuisaucameroun.com</b> redirige automatiquement vers <b>jesuisaupays.com/cameroun</b>. Personne ne perd rien.</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ===== 3. QUI GERE QUOI ===== -->
+        <div class="section">
+            <div class="section-num">03 &mdash; La gestion</div>
+            <h2>Qui g&egrave;re quoi ?</h2>
+
+            <div class="cards cards-2">
+                <div class="card" style="border-top: 4px solid var(--blue);">
+                    <div class="icon">&#x1F451;</div>
+                    <h4>Le Superadmin</h4>
+                    <p>Voit <b>tous les pays</b>. Il ajoute de nouveaux pays, configure le look, active ou d&eacute;sactive un pays, voit les statistiques globales.</p>
+                </div>
+                <div class="card" style="border-top: 4px solid var(--green);">
+                    <div class="icon">&#x1F464;</div>
+                    <h4>L'admin local</h4>
+                    <p>Ne voit <b>que son pays</b>. Il g&egrave;re ses missions, traite les candidatures, publie ses actualit&eacute;s. Rien ne change pour lui.</p>
+                </div>
+            </div>
+
+            <h3 style="font-size: 16px; margin: 28px 0 12px;">Ajouter un nouveau pays, c'est simple :</h3>
+            <ol>
+                <li>Vous pr&eacute;parez le logo et les images du pays</li>
+                <li>Le Superadmin cr&eacute;e le pays depuis l'interface (~15 min)</li>
+                <li>Vous r&eacute;digez les pages d'info (&Agrave; propos, FAQ, CGU...)</li>
+                <li>Le Superadmin active le pays. C'est en ligne !</li>
+            </ol>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ===== 4. CALENDRIER + EFFORT ===== -->
+        <div class="section">
+            <div class="section-num">04 &mdash; Le calendrier</div>
+            <h2>Combien de temps et de travail ?</h2>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>&Eacute;tape</th>
+                        <th>Quoi</th>
+                        <th style="text-align:right;">Jours</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="label">0. Nettoyage</td><td>Corriger les petits probl&egrave;mes existants</td><td style="text-align:right;">3</td></tr>
+                    <tr><td class="label">1. Fondations</td><td>Pr&eacute;parer le site pour g&eacute;rer plusieurs pays</td><td style="text-align:right;">13</td></tr>
+                    <tr><td class="label">2. Navigation</td><td>Adapter toutes les pages au multi-pays</td><td style="text-align:right;">18</td></tr>
+                    <tr><td class="label">3. Design</td><td>Logo, couleurs, pied de page par pays</td><td style="text-align:right;">7</td></tr>
+                    <tr><td class="label">4. Portail</td><td>Page d'accueil jesuisaupays.com</td><td style="text-align:right;">8</td></tr>
+                    <tr><td class="label">5. Administration</td><td>Outil de gestion des pays</td><td style="text-align:right;">13</td></tr>
+                    <tr><td class="label">6. Emails</td><td>Emails personnalis&eacute;s par pays</td><td style="text-align:right;">7</td></tr>
+                    <tr><td class="label">7. Tests & lancement</td><td>Tout v&eacute;rifier, mettre en ligne</td><td style="text-align:right;">10</td></tr>
+                </tbody>
+            </table>
+
+            <div class="total">
+                <div>
+                    <div class="lbl">Effort total</div>
+                    <div class="sub">1 jour = 1 journ&eacute;e compl&egrave;te de travail</div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="val">79 jours</div>
+                    <div class="sub">&asymp; 14 semaines (1 d&eacute;v.) &bull; ~10 semaines (2 d&eacute;v.)</div>
+                </div>
+            </div>
+
+            <div class="note note-amber">
+                <strong>&#x26A0;&#xFE0F; Marge pour les impr&eacute;vus</strong>
+                <p>Nous recommandons une marge de 20%, soit <b>~95 jours au total</b>. C'est une pratique standard.</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- ===== 5. CE QUE VOUS RECEVEZ ===== -->
+        <div class="section">
+            <div class="section-num">05 &mdash; Ce que vous recevez</div>
+            <h2>La liste compl&egrave;te</h2>
+
+            <div class="cards cards-2">
+                <div class="card">
+                    <div class="icon">&#x1F30D;</div>
+                    <h4>Plateforme multi-pays en ligne</h4>
+                    <p>Cameroun comme premier pays, pr&ecirc;te pour les suivants</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F3E0;</div>
+                    <h4>Portail jesuisaupays.com</h4>
+                    <p>Page d'accueil avec tous les pays et recherche globale</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x2795;</div>
+                    <h4>Outil d'ajout de pays</h4>
+                    <p>Interface simple pour le Superadmin</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F4C4;</div>
+                    <h4>Pages d'info par pays</h4>
+                    <p>&Agrave; propos, FAQ, CGU... modifiables par pays</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x2709;&#xFE0F;</div>
+                    <h4>9 emails adapt&eacute;s par pays</h4>
+                    <p>Nom, logo et liens du bon pays</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F512;</div>
+                    <h4>Domaines configur&eacute;s</h4>
+                    <p>Anciens domaines redirig&eacute;s, nouveaux s&eacute;curis&eacute;s</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x2705;</div>
+                    <h4>Rapport de tests complet</h4>
+                    <p>Preuve que tout fonctionne</p>
+                </div>
+                <div class="card">
+                    <div class="icon">&#x1F4D6;</div>
+                    <h4>Guide + 3 mois de suivi Google</h4>
+                    <p>Documentation + surveillance du r&eacute;f&eacute;rencement</p>
+                </div>
+            </div>
+
+            <div class="note note-green">
+                <strong>&#x1F6E1;&#xFE0F; Z&eacute;ro risque pour vous</strong>
+                <p>On travaille sur une copie. On ne touche au vrai site que quand tout est test&eacute;. Et si quelque chose ne va pas le jour du lancement, on peut tout remettre comme avant en moins d'une heure.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <b>OFFRE TECHNIQUE &mdash; CONFIDENTIEL</b><br>
+        &copy; 2026 iLab TN &mdash; Tous droits r&eacute;serv&eacute;s<br>
+        Ce document est la propri&eacute;t&eacute; exclusive d'iLab TN et ne peut &ecirc;tre reproduit sans autorisation.
+    </footer>
+
+</div>
+
+</body>
+</html>

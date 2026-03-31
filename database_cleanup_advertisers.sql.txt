@@ -1,0 +1,20 @@
+-- SQL Cleanup Script for Je Suis Au Cameroun
+-- Purpose: Remove all advertiser profiles, cities, and associated content to start fresh.
+
+-- 1. Clear all application-related data first (Dependencies)
+DELETE FROM public.candidatures;
+DELETE FROM public.opportunite_contacts;
+
+-- 2. Clear all dynamic content posted by advertisers (Missions, News, Notifications)
+DELETE FROM public.opportunites;
+DELETE FROM public.actualites;
+DELETE FROM public.notifications;
+
+-- 3. Unlink existing user profiles from advertisers to avoid foreign key violations
+UPDATE public.profiles SET annonceur_id = NULL;
+
+-- 4. Clear the advertiser profiles (This empties the "Ville" list in the search motor and "Fiches")
+DELETE FROM public.annonceur_profiles;
+
+-- 5. Optional: If you want to clear all user accounts except Superadmins
+-- DELETE FROM public.profiles WHERE role != 'Superadmin';

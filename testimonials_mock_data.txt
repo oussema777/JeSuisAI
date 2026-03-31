@@ -1,0 +1,34 @@
+CONSEILS POUR L'AJOUT : 
+- Dans votre espace Superadmin > Landing Page > Témoignages
+- Cliquez sur "Ajouter" pour chaque nouveau témoignage
+- Copiez-collez les informations ci-dessous
+
+--------------------------------------------------
+TÉMOIGNAGE 1 (Maire / Officiel)
+--------------------------------------------------
+Type : Maire / Officiel
+Emoji : 🤝
+Nom : M. Paul Mbarga
+Rôle : Maire de Douala
+Citation : La diaspora apporte une expertise précieuse et des ressources qui nous manquent. Cette collaboration a permis de lancer 12 projets structurants en 2 ans pour le bien-être de nos concitoyens.
+URL Avatar : https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop
+
+--------------------------------------------------
+TÉMOIGNAGE 2 (Contributeur)
+--------------------------------------------------
+Type : Contributeur
+Emoji : 🏥
+Nom : Dr. Marie Tankou
+Rôle : Médecin, Paris
+Citation : Grâce à cette plateforme, j'ai pu contribuer à la construction d'un centre de santé dans mon village natal. Une expérience enrichissante qui a changé des vies et renforcé mon lien avec mes racines.
+URL Avatar : https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop
+
+--------------------------------------------------
+TÉMOIGNAGE 3 (Contributeur)
+--------------------------------------------------
+Type : Contributeur
+Emoji : 💡
+Nom : Jean-Claude Fotso
+Rôle : Entrepreneur, Montréal
+Citation : J'ai trouvé ici une façon concrète de redonner à ma communauté. Le mentorat que j'offre aux jeunes entrepreneurs locaux a déjà permis la création de 15 emplois durables.
+URL Avatar : https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop
