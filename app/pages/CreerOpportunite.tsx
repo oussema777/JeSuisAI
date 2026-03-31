@@ -31,6 +31,10 @@ export default function CreerOpportunite() {
   const [errorMsg, setErrorMsg] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
+  // AI Assistant States
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [optimizedVersion, setOptimizedVersion] = useState<any>(null);
+
   // Form state - Aligned with Cahier de Charge
   const [formData, setFormData] = useState({
     // Section 1: Informations générales
@@ -505,7 +509,15 @@ export default function CreerOpportunite() {
 
               {/* Helper Sidebar */}
               <div className="lg:col-span-4 hidden lg:block">
-                <EncartConseils />
+                <EncartConseils
+                  formData={formData as any}
+                  aiResult={aiResult}
+                  optimizedVersion={optimizedVersion}
+                  onAiResult={setAiResult}
+                  onOptimizedVersion={setOptimizedVersion}
+                  onAssistantResponse={() => {}}
+                  onApplyFieldUpdates={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+                />
               </div>
             </div>
             ) : null}
