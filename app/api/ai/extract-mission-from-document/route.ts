@@ -28,7 +28,7 @@ const extractionSchema = {
     timingAction: { type: SchemaType.STRING },
     remunerationPrevue: { type: SchemaType.STRING },
   },
-};
+} as const;
 
 const extractionPrompt = `
 Vous êtes un assistant d'analyse documentaire pour pré-remplir un formulaire de mission diaspora.
