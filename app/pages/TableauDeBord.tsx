@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   ClipboardList, Inbox, UserCheck, FolderOpen, Plus,
   Newspaper, Users, Download, Settings, HelpCircle, Loader2, X as XIcon, CheckCircle
@@ -381,9 +382,9 @@ export function TableauDeBord({ onNavigate }: TableauDeBordProps) {
               © 2024 Jesuisaucameroun.com
             </div>
             <div className="flex flex-wrap justify-center items-center gap-4 lg:gap-6">
-              <a href="/admin/aide" className="text-neutral-600 hover:text-primary transition-colors text-sm">Aide</a>
-              <a href="/admin/aide" className="text-neutral-600 hover:text-primary transition-colors text-sm">Documentation</a>
-              <a href="/contact" className="text-neutral-600 hover:text-primary transition-colors text-sm">Contact support</a>
+              <Link href="/admin/aide" className="text-neutral-600 hover:text-primary transition-colors text-sm">Aide</Link>
+              <Link href="/admin/aide" className="text-neutral-600 hover:text-primary transition-colors text-sm">Documentation</Link>
+              <Link href="/contact" className="text-neutral-600 hover:text-primary transition-colors text-sm">Contact support</Link>
             </div>
             <div className="text-neutral-500" style={{ fontSize: '13px', fontWeight: 400 }}>
               v1.2.0
