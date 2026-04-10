@@ -6,6 +6,7 @@ interface ChampTexteProps {
   name: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: (value: string) => void;
   type?: string;
   placeholder?: string;
   required?: boolean;
@@ -20,6 +21,7 @@ export function ChampTexte({
   name,
   value,
   onChange,
+  onBlur,
   type = "text",
   placeholder,
   required = false,
@@ -41,6 +43,7 @@ export function ChampTexte({
         name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => onBlur?.(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
         disabled={disabled}
