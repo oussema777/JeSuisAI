@@ -883,8 +883,8 @@ export function EncartConseils({
   const documentModalRef = useRef<HTMLDivElement>(null);
   const fabContainerRef = useRef<HTMLDivElement>(null);
 
-  const fabToastTimeoutRef = useRef<NodeJS.Timeout>();
-  const fabPulseTimeoutRef = useRef<NodeJS.Timeout>();
+  const fabToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fabPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const missionPayload = useMemo(() => buildMissionPayload(formData), [formData]);
   const currentMissionSignature = useMemo(() => buildMissionSignature(missionPayload), [missionPayload]);
@@ -2259,5 +2259,3 @@ export function EncartConseils({
     </>
   );
 }
-
-export { EncartConseils };

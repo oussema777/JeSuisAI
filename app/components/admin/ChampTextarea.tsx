@@ -6,6 +6,7 @@ interface ChampTextareaProps {
   name: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: (value: string) => void;
   placeholder?: string;
   required?: boolean;
   helperText?: string;
@@ -19,6 +20,7 @@ export function ChampTextarea({
   name,
   value,
   onChange,
+  onBlur,
   placeholder,
   required = false,
   helperText,
@@ -38,6 +40,7 @@ export function ChampTextarea({
         name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => onBlur?.(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
         rows={rows}
