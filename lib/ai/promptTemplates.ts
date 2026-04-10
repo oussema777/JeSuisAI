@@ -177,6 +177,7 @@ export function buildFormAssistantChatPrompt(data: {
     description?: string;
     impactsObjectifs?: string;
     detailsContributions?: string;
+    contributionTypes?: string;
   };
   analysis?: {
     strengths?: string[];
@@ -198,6 +199,7 @@ Contexte mission :
 - Description : ${data.mission.description ?? "Non fournie"}
 - Impacts/Objectifs : ${data.mission.impactsObjectifs ?? "Non fournis"}
 - Contributions : ${data.mission.detailsContributions ?? "Non fournis"}
+- Types de contribution : ${data.mission.contributionTypes ?? "Non fournis"}
 
 Signaux d'analyse IA :
 - Points forts : ${JSON.stringify(data.analysis?.strengths ?? [])}
@@ -311,6 +313,54 @@ Pas d'explications hors JSON.
 `;
 }
 
+export function buildPrePublishPolishPrompt(data: {
+  title?: string;
+  description?: string;
+  impactsObjectifs?: string;
+  detailsContributions?: string;
+  conditionsMission?: string;
+  detailRemuneration?: string;
+  facilitesAutres?: string;
+  remunerationAutre?: string;
+}) {
+  return `
+Vous êtes un relecteur éditorial avant publication de mission.
+
+Objectif : corriger l'orthographe, la grammaire, la ponctuation et la mise en page des champs texte, sans changer le sens métier.
+
+Règles strictes :
+- Conserver les faits et l'intention.
+- Ne pas inventer d'informations.
+- Améliorer la lisibilité (phrases claires, ponctuation correcte, sauts de ligne propres).
+- Garder un ton professionnel.
+- Si un champ est vide, le laisser vide.
+
+Champs à corriger :
+- intituleAction: ${data.title ?? ''}
+- descriptionGenerale: ${data.description ?? ''}
+- impactsObjectifs: ${data.impactsObjectifs ?? ''}
+- detailsContributions: ${data.detailsContributions ?? ''}
+- conditionsMission: ${data.conditionsMission ?? ''}
+- detailRemuneration: ${data.detailRemuneration ?? ''}
+- facilitesAutres: ${data.facilitesAutres ?? ''}
+- remunerationAutre: ${data.remunerationAutre ?? ''}
+
+Retournez UNIQUEMENT du JSON valide avec exactement ce format :
+{
+  "intituleAction": "string",
+  "descriptionGenerale": "string",
+  "impactsObjectifs": "string",
+  "detailsContributions": "string",
+  "conditionsMission": "string",
+  "detailRemuneration": "string",
+  "facilitesAutres": "string",
+  "remunerationAutre": "string"
+}
+
+Pas d'explications hors JSON.
+`;
+}
+
 /**
  * Detect which form section the user is targeting
  * Returns: { section: "title" | "description" | "impacts" | "contributions" | null, confidence: "explicit" | "inferred" | null }
@@ -323,7 +373,7 @@ export function detectSectionTarget(userMessage: string): { section: string | nu
     title: ["titre", "intitulé", "nom", "subject", "heading", "title"],
     description: ["description", "contexte", "background", "présentation", "details", "détails"],
     impacts: ["impacts", "objectifs", "goals", "outcomes", "résultats", "aims", "objectives"],
-    contributions: ["contributions", "profils", "compétences", "skills", "profiles", "expertise", "competences"],
+    contributions: ["contributions", "type de contribution", "type contribution", "profils", "compétences", "skills", "profiles", "expertise", "competences"],
     domain: ["domaine", "domain", "secteur", "sector", "thématique", "field"],
   };
 
@@ -368,6 +418,7 @@ export function buildSectionFocusedPrompt(data: {
     description?: string;
     impactsObjectifs?: string;
     detailsContributions?: string;
+    contributionTypes?: string;
   };
   analysis?: {
     strengths?: string[];
@@ -413,6 +464,7 @@ ${lang === "en" ? "Context mission:" : "Contexte mission:"}
 - ${lang === "en" ? "Description" : "Description"}: ${data.mission.description ?? (lang === "en" ? "Not provided" : "Non fournie")}
 - ${lang === "en" ? "Impacts/Goals" : "Impacts/Objectifs"}: ${data.mission.impactsObjectifs ?? (lang === "en" ? "Not provided" : "Non fournis")}
 - ${lang === "en" ? "Profiles needed" : "Profils recherchés"}: ${data.mission.detailsContributions ?? (lang === "en" ? "Not provided" : "Non fournis")}
+- ${lang === "en" ? "Contribution types" : "Types de contribution"}: ${data.mission.contributionTypes ?? (lang === "en" ? "Not provided" : "Non fournis")}
 
 ${lang === "en" ? "User request:" : "Demande utilisateur:"} ${data.userMessage}
 

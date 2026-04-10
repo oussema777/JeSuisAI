@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Eye,
   Save,
   Loader2,
   Check,
   AlertCircle,
+  Sparkles,
   Plus,
   Trash2,
-  User
+  User,
+  FileUp,
+  MessageSquare,
 } from "lucide-react";
 import { useTranslations } from 'next-intl';
 import { SectionFormulaire } from "./SectionFormulaire";
@@ -84,6 +87,13 @@ interface FormulaireOpportuniteProps {
   inlineSuggestion?: InlineFieldSuggestion | null;
   onKeepInlineSuggestion?: (field: SuggestionFieldKey, value: string) => void;
   onDiscardInlineSuggestion?: () => void;
+  onAssistantAnalyzeClick?: () => void;
+  onAssistantDocumentClick?: () => void;
+  onAssistantChatClick?: () => void;
+  assistantAnalyzeDisabled?: boolean;
+  assistantAnalyzeLoading?: boolean;
+  assistantDocumentDisabled?: boolean;
+  assistantChatDisabled?: boolean;
 }
 
 export function FormulaireOpportunite({
@@ -101,6 +111,13 @@ export function FormulaireOpportunite({
   inlineSuggestion = null,
   onKeepInlineSuggestion,
   onDiscardInlineSuggestion,
+  onAssistantAnalyzeClick,
+  onAssistantDocumentClick,
+  onAssistantChatClick,
+  assistantAnalyzeDisabled = false,
+  assistantAnalyzeLoading = false,
+  assistantDocumentDisabled = false,
+  assistantChatDisabled = false,
 }: FormulaireOpportuniteProps) {
 
   const t = useTranslations('Admin.MissionForm');
@@ -135,6 +152,52 @@ export function FormulaireOpportunite({
 
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const normalizeSpacing = (value: string) =>
+    value
+      .replace(/\u00A0/g, ' ')
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\s+([,;:.!?])/g, '$1')
+      .replace(/([,;:.!?])(\S)/g, '$1 $2')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+  const capitalizeSentenceStarts = (value: string) =>
+    value.replace(/(^|[.!?]\s+|\n+)([a-zà-ÿ])/g, (match, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+
+  const ensureTrailingPunctuation = (value: string) => {
+    if (!value) return value;
+    if (/[.!?…]$/.test(value)) return value;
+    return `${value}.`;
+  };
+
+  const autoFormatTextField = (
+    field: keyof FormDataOpportunite,
+    value: string,
+    options?: { sentenceMode?: boolean; addTerminalPunctuation?: boolean }
+  ) => {
+    const sentenceMode = options?.sentenceMode ?? false;
+    const addTerminalPunctuation = options?.addTerminalPunctuation ?? false;
+
+    if (!value?.trim()) return value;
+
+    let formatted = normalizeSpacing(value);
+
+    if (sentenceMode) {
+      formatted = capitalizeSentenceStarts(formatted);
+      if (addTerminalPunctuation) {
+        formatted = ensureTrailingPunctuation(formatted);
+      }
+    } else {
+      formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+
+    if (formatted !== value) {
+      updateField(field, formatted);
+    }
+
+    return formatted;
   };
 
   const updateNestedField = (parent: string, field: string, value: any) => {
@@ -222,12 +285,60 @@ export function FormulaireOpportunite({
       {/* Form Header */}
       {!hideHeader && (
       <div className="bg-white rounded-t-xl p-6 border-b border-neutral-200">
-        <h2 className="text-neutral-900 mb-2" style={{ fontSize: "25px", fontWeight: 600 }}>
-          {isEditMode ? t('title_edit') : t('title_new')}
-        </h2>
-        <p className="text-neutral-600" style={{ fontSize: "14px", fontWeight: 400 }}>
-          {t('subtitle')}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-neutral-900 mb-2" style={{ fontSize: "25px", fontWeight: 600 }}>
+              {isEditMode ? t('title_edit') : t('title_new')}
+            </h2>
+            <p className="text-neutral-600" style={{ fontSize: "14px", fontWeight: 400 }}>
+              {t('subtitle')}
+            </p>
+          </div>
+
+          {(onAssistantAnalyzeClick || onAssistantDocumentClick || onAssistantChatClick) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {onAssistantAnalyzeClick && (
+                <button
+                  type="button"
+                  onClick={onAssistantAnalyzeClick}
+                  disabled={assistantAnalyzeDisabled || assistantAnalyzeLoading}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${(assistantAnalyzeDisabled || assistantAnalyzeLoading) ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed' : 'bg-primary text-white hover:opacity-90'}`}
+                  aria-label="Analyser la mission"
+                >
+                  {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {assistantAnalyzeLoading ? 'Analyse en cours...' : 'Assistant IA'}
+                </button>
+              )}
+
+              {onAssistantDocumentClick && (
+                <button
+                  type="button"
+                  onClick={onAssistantDocumentClick}
+                  disabled={assistantDocumentDisabled}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${assistantDocumentDisabled ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed' : 'bg-white text-primary border-primary/30 hover:bg-primary/5'}`}
+                  aria-label="Remplir depuis un document"
+                >
+                  <FileUp className="w-4 h-4" />
+                  Document
+                </button>
+              )}
+
+              {onAssistantChatClick && (
+                <button
+                  type="button"
+                  onClick={onAssistantChatClick}
+                  disabled={assistantChatDisabled}
+                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${assistantChatDisabled ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'}`}
+                  aria-label="Ouvrir le chat assistant"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Chat
+                </button>
+              )}
+
+            </div>
+          )}
+        </div>
       </div>
       )}
 
@@ -242,6 +353,9 @@ export function FormulaireOpportunite({
               name="intituleAction"
               value={formData.intituleAction}
               onChange={(value) => updateField("intituleAction", value)}
+              onBlur={(value) => {
+                autoFormatTextField('intituleAction', value, { sentenceMode: false, addTerminalPunctuation: false });
+              }}
               placeholder={t('intitule_placeholder')}
               required
               maxLength={100}
@@ -374,6 +488,9 @@ export function FormulaireOpportunite({
               name="descriptionGenerale"
               value={formData.descriptionGenerale}
               onChange={(value) => updateField("descriptionGenerale", value)}
+              onBlur={(value) => {
+                autoFormatTextField('descriptionGenerale', value, { sentenceMode: true, addTerminalPunctuation: true });
+              }}
               placeholder={t('description_placeholder')}
               required
               rows={8}
@@ -389,6 +506,9 @@ export function FormulaireOpportunite({
               name="impactsObjectifs"
               value={formData.impactsObjectifs}
               onChange={(value) => updateField("impactsObjectifs", value)}
+              onBlur={(value) => {
+                autoFormatTextField('impactsObjectifs', value, { sentenceMode: true, addTerminalPunctuation: true });
+              }}
               placeholder={t('impacts_placeholder')}
               required
               rows={5}
@@ -423,6 +543,9 @@ export function FormulaireOpportunite({
               name="detailsContributions"
               value={formData.detailsContributions}
               onChange={(value) => updateField("detailsContributions", value)}
+              onBlur={(value) => {
+                autoFormatTextField('detailsContributions', value, { sentenceMode: true, addTerminalPunctuation: true });
+              }}
               placeholder={t('contributions_detail_placeholder')}
               rows={4}
               maxLength={500}
@@ -440,6 +563,9 @@ export function FormulaireOpportunite({
               name="conditionsMission"
               value={formData.conditionsMission}
               onChange={(v) => updateField("conditionsMission", v)}
+              onBlur={(v) => {
+                autoFormatTextField('conditionsMission', v, { sentenceMode: true, addTerminalPunctuation: true });
+              }}
               rows={6}
               placeholder={t('conditions_placeholder')}
             />
@@ -464,22 +590,32 @@ export function FormulaireOpportunite({
           </div>
 
           {formData.remunerationPrevue === "autre" && (
-             <ChampTexte
-              label={t('remuneration_autre_label')}
-              name="remunerationAutre"
-              value={formData.remunerationAutre}
-              onChange={(v) => updateField("remunerationAutre", v)}
-            />
+            <div>
+              <ChampTexte
+                label={t('remuneration_autre_label')}
+                name="remunerationAutre"
+                value={formData.remunerationAutre}
+                onChange={(v) => updateField("remunerationAutre", v)}
+                onBlur={(v) => {
+                  autoFormatTextField('remunerationAutre', v, { sentenceMode: false, addTerminalPunctuation: false });
+                }}
+              />
+            </div>
           )}
 
-          <ChampTextarea
-            label={t('detail_remuneration_label')}
-            name="detailRemuneration"
-            value={formData.detailRemuneration}
-            onChange={(v) => updateField("detailRemuneration", v)}
-            rows={4}
-            placeholder={t('detail_remuneration_placeholder')}
-          />
+          <div>
+            <ChampTextarea
+              label={t('detail_remuneration_label')}
+              name="detailRemuneration"
+              value={formData.detailRemuneration}
+              onChange={(v) => updateField("detailRemuneration", v)}
+              onBlur={(v) => {
+                autoFormatTextField('detailRemuneration', v, { sentenceMode: true, addTerminalPunctuation: true });
+              }}
+              rows={4}
+              placeholder={t('detail_remuneration_placeholder')}
+            />
+          </div>
         </SectionFormulaire>
 
         {/* SECTION 6: Facilities */}
@@ -499,7 +635,15 @@ export function FormulaireOpportunite({
 
             {formData.facilites.autres && (
               <div className="mt-3">
-                <ChampTexte label={t('facilite_autres_label')} name="facilitesAutres" value={formData.facilitesAutres} onChange={(v) => updateField("facilitesAutres", v)} />
+                <ChampTexte
+                  label={t('facilite_autres_label')}
+                  name="facilitesAutres"
+                  value={formData.facilitesAutres}
+                  onChange={(v) => updateField("facilitesAutres", v)}
+                  onBlur={(v) => {
+                    autoFormatTextField('facilitesAutres', v, { sentenceMode: true, addTerminalPunctuation: true });
+                  }}
+                />
               </div>
             )}
           </div>
