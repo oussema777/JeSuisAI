@@ -23,19 +23,16 @@ import {
 } from "../components/admin/FormulaireOpportunite";
 
 // Initialize Supabase Client (singleton)
-const IS_AI_TEST_MODE = process.env.NEXT_PUBLIC_AI_TEST_MODE === 'true';
-const IS_LOCAL_DEV_BYPASS = process.env.NODE_ENV !== 'production';
 const HAS_SUPABASE_CONFIG =
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
   Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-const IS_AUTH_BYPASS = IS_AI_TEST_MODE || IS_LOCAL_DEV_BYPASS || !HAS_SUPABASE_CONFIG;
 const supabase = HAS_SUPABASE_CONFIG ? getSupabaseBrowserClient() : null;
 
 export default function CreerOpportunite() {
   const router = useRouter();
   const t = useTranslations('Admin.MissionForm');
   const { user, profile, loading: authLoading, isSuperadmin } = useAuth(); // Get current user and profile
-  const hasAnnonceur = IS_AUTH_BYPASS || !!profile?.annonceur_id;
+  const hasAnnonceur = !!profile?.annonceur_id;
 
   // UI States
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -196,7 +193,6 @@ export default function CreerOpportunite() {
   };
 
   useEffect(() => {
-    if (IS_AUTH_BYPASS) return;
     if (!authLoading && !user) {
       router.push('/login');
     }
@@ -215,6 +211,14 @@ export default function CreerOpportunite() {
   };
 
   const persistOpportunity = async (activeFormData: FormDataOpportunite) => {
+    if (!user) {
+      throw new Error("Vous devez être connecté pour créer une action.");
+    }
+
+    if (!supabase) {
+      throw new Error('Configuration Supabase manquante.');
+    }
+
     // 1. Upload Photo
     let photoPath = null;
     if (activeFormData.photoRepresentation.length > 0) {
@@ -373,16 +377,6 @@ export default function CreerOpportunite() {
   const confirmPrePublishReview = async () => {
     if (!pendingPublishData) return;
 
-    if (IS_AUTH_BYPASS) {
-      setFormData(pendingPublishData);
-      setIsPrePublishReviewOpen(false);
-      setPrePublishReview(null);
-      setPendingPublishData(null);
-      setPrePublishReviewError(null);
-      setErrorMsg('Mode test IA/local actif: les corrections ont été appliquées au formulaire, mais l\'enregistrement base de données reste désactivé.');
-      return;
-    }
-
     setIsSubmitting(true);
     setErrorMsg('');
 
@@ -414,7 +408,7 @@ export default function CreerOpportunite() {
 
   const uploadFiles = async (files: File[], folder: string) => {
     if (!supabase) {
-      throw new Error('Supabase indisponible: upload de fichiers désactivé en mode test IA.');
+      throw new Error('Supabase indisponible: vérifiez la configuration des variables d\'environnement.');
     }
 
     const paths: string[] = [];
@@ -468,12 +462,12 @@ export default function CreerOpportunite() {
     e.preventDefault();
 
     if (formData.statutPublication === 'publie') {
-      if (!IS_AUTH_BYPASS && !user) {
+      if (!user) {
         setErrorMsg("Vous devez être connecté pour créer une action.");
         return;
       }
 
-      if (!supabase && !IS_AUTH_BYPASS) {
+      if (!supabase) {
         setErrorMsg('Configuration Supabase manquante.');
         return;
       }
@@ -486,20 +480,6 @@ export default function CreerOpportunite() {
       }
 
       setIsSubmitting(false);
-      setErrorMsg('');
-      setShowSuccess(false);
-      await openPrePublishReview(formData);
-      return;
-    }
-
-    if (IS_AUTH_BYPASS) {
-      const validationError = validateForm();
-      if (validationError) {
-        setErrorMsg(validationError);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
       setErrorMsg('');
       setShowSuccess(false);
       await openPrePublishReview(formData);
@@ -630,7 +610,7 @@ export default function CreerOpportunite() {
             )}
 
             {/* Fiche Annonceur Required Banner */}
-            {!hasAnnonceur && !isSuperadmin && !authLoading && !IS_AUTH_BYPASS && (
+            {!hasAnnonceur && !isSuperadmin && !authLoading && (
               <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-5 rounded-r shadow-sm flex items-start gap-3">
                 <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
@@ -658,7 +638,7 @@ export default function CreerOpportunite() {
               </div>
             )}
 
-            {hasAnnonceur || isSuperadmin || IS_AUTH_BYPASS ? (
+            {hasAnnonceur || isSuperadmin ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               {/* Main Form */}
               <div className={isAiDraftMode ? "lg:col-span-6" : "lg:col-span-8"}>
@@ -811,7 +791,7 @@ export default function CreerOpportunite() {
                     disabled={isPrePublishReviewLoading}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {IS_AUTH_BYPASS ? 'Appliquer au formulaire' : 'Confirmer et publier'}
+                    {'Confirmer et publier'}
                   </button>
                   <button
                     type="button"
