@@ -1,5 +1,5 @@
 import { GeminiClient } from './geminiClient';
-import { buildAnalyzePrompt, buildDocumentToMissionPrompt, buildFormAssistantChatPrompt, buildOptimizeMissionPrompt, buildSectionFocusedPrompt, detectSectionTarget } from './promptTemplates';
+import { buildAnalyzePrompt, buildDocumentToMissionPrompt, buildFormAssistantChatPrompt, buildOptimizeMissionPrompt, buildPrePublishPolishPrompt, buildSectionFocusedPrompt, detectSectionTarget } from './promptTemplates';
 import { computeGlobalScore } from './scoringEngine';
 
 let geminiClient: GeminiClient | null = null;
@@ -97,6 +97,17 @@ export interface DocumentInferredMission {
   actionDistance?: string;
   timingAction?: string;
   remunerationPrevue?: string;
+}
+
+export interface PrePublishPolishedMission {
+  intituleAction: string;
+  descriptionGenerale: string;
+  impactsObjectifs: string;
+  detailsContributions: string;
+  conditionsMission: string;
+  detailRemuneration: string;
+  facilitesAutres: string;
+  remunerationAutre: string;
 }
 
 export async function analyzeMission(data: {
@@ -204,6 +215,7 @@ export async function chatWithMissionAssistant(data: {
     description?: string;
     impactsObjectifs?: string;
     detailsContributions?: string;
+    contributionTypes?: string;
   };
   analysis?: {
     strengths?: string[];
@@ -241,6 +253,7 @@ export async function chatSectionFocused(data: {
     description?: string;
     impactsObjectifs?: string;
     detailsContributions?: string;
+    contributionTypes?: string;
   };
   analysis?: {
     strengths?: string[];
@@ -304,4 +317,40 @@ export async function inferMissionFromDocumentContext(data: {
   cleanedResponse = cleanedResponse.trim();
 
   return JSON.parse(cleanedResponse) as DocumentInferredMission;
+}
+
+export async function polishMissionBeforePublish(data: {
+  title?: string;
+  description?: string;
+  impactsObjectifs?: string;
+  detailsContributions?: string;
+  conditionsMission?: string;
+  detailRemuneration?: string;
+  facilitesAutres?: string;
+  remunerationAutre?: string;
+}) {
+  const prompt = buildPrePublishPolishPrompt(data);
+  const response = await getGeminiClient().generate(prompt, { temperature: 0.2 });
+
+  let cleanedResponse = response.trim();
+
+  if (cleanedResponse.includes('```json')) {
+    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
+  } else if (cleanedResponse.includes('```')) {
+    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
+  }
+
+  cleanedResponse = cleanedResponse.trim();
+  const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
+
+  return {
+    intituleAction: parsed.intituleAction ?? data.title ?? '',
+    descriptionGenerale: parsed.descriptionGenerale ?? data.description ?? '',
+    impactsObjectifs: parsed.impactsObjectifs ?? data.impactsObjectifs ?? '',
+    detailsContributions: parsed.detailsContributions ?? data.detailsContributions ?? '',
+    conditionsMission: parsed.conditionsMission ?? data.conditionsMission ?? '',
+    detailRemuneration: parsed.detailRemuneration ?? data.detailRemuneration ?? '',
+    facilitesAutres: parsed.facilitesAutres ?? data.facilitesAutres ?? '',
+    remunerationAutre: parsed.remunerationAutre ?? data.remunerationAutre ?? '',
+  } as PrePublishPolishedMission;
 }
