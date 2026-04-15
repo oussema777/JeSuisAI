@@ -115,7 +115,6 @@ export async function analyzeMission(data: {
   title: string;
   description?: string;
   impactsObjectifs?: string;
-  detailsContributions?: string;
 }) {
   const prompt = buildAnalyzePrompt(data);
 

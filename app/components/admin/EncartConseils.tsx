@@ -7,15 +7,15 @@ import {
   ChevronRight,
   CircleAlert,
   Bot,
-  Eye,
   FileUp,
+  Link2,
   Loader2,
   MessageSquare,
   Sparkles,
   X,
   Bell,
 } from 'lucide-react';
-import { getScoreColor, getScoreLabel } from '@/lib/ai/scoringEngine';
+import { getScoreLabel } from '@/lib/ai/scoringEngine';
 import { useLocale } from 'next-intl';
 import type {
   AssistantChatResponse,
@@ -31,12 +31,6 @@ type ChatMessage = {
   timestamp: string;
 };
 
-type StatusChip = {
-  label: string;
-  state: 'resolved' | 'pending' | 'clear';
-};
-
-type ConversationPhase = 'idle' | 'analyzed' | 'draft_ready' | 'applied';
 type DocumentFlowStep = 'form' | 'reading' | 'applying' | 'done';
 
 function getCurrentTimeLabel() {
@@ -50,28 +44,6 @@ function buildMessage(role: 'user' | 'assistant', content: string): ChatMessage 
     content,
     timestamp: getCurrentTimeLabel(),
   };
-}
-
-function getQuickRepliesForPhase(phase: ConversationPhase, isFrench: boolean): string[] {
-  if (phase === 'analyzed') {
-    return isFrench
-      ? ['Quels sont les points faibles ?', 'Comment améliorer le titre ?', 'Générer une version améliorée']
-      : ['What are the weak points?', 'How can I improve the title?', 'Generate an improved version'];
-  }
-
-  if (phase === 'draft_ready') {
-    return isFrench
-      ? ['Appliquer les modifications', 'Modifier un champ spécifique', 'Tout annuler']
-      : ['Apply changes', 'Edit a specific field', 'Cancel everything'];
-  }
-
-  if (phase === 'applied') {
-    return isFrench
-      ? ['Analyser à nouveau', 'Voir le rapport complet']
-      : ['Analyze again', 'View full report'];
-  }
-
-  return [];
 }
 
 function trapFocusInContainer(event: KeyboardEvent, container: HTMLElement | null) {
@@ -335,8 +307,6 @@ function TechnicalReportModal({
   missionTitle,
   focusRing,
 }: TechnicalReportModalProps) {
-  if (!isOpen || !technicalReport) return null;
-
   const modalRef = useRef<HTMLDivElement>(null);
 
   // [REPORT-UX] Reduced motion detection to disable non-essential animations.
@@ -409,6 +379,8 @@ function TechnicalReportModal({
     modalRef.current?.focus();
   }, [isOpen]);
 
+  if (!isOpen || !technicalReport) return null;
+
   // [REPORT-UX] Shared score color utility.
   const scoreColor = (score: number) => (score >= 7.5 ? 'green' : score >= 5 ? 'amber' : 'red');
 
@@ -424,36 +396,33 @@ function TechnicalReportModal({
     return <span className="text-gray-400">— {value}</span>;
   };
 
-  const dimensions = useMemo(() => {
-    const rows = [
-      {
-        key: 'description_coherence',
-        label: isFrench ? 'Cohérence description' : 'Description coherence',
-        score: technicalReport.scores.description_coherence,
-      },
-      {
-        key: 'impact_coherence',
-        label: isFrench ? 'Cohérence impacts' : 'Impact coherence',
-        score: technicalReport.scores.impact_coherence,
-      },
-      {
-        key: 'contribution_coherence',
-        label: isFrench ? 'Cohérence contributions' : 'Contribution coherence',
-        score: technicalReport.scores.contribution_coherence,
-      },
-      {
-        key: 'feasibility_realism',
-        label: isFrench ? 'Faisabilité' : 'Feasibility',
-        score: technicalReport.scores.feasibility_realism,
-      },
-      {
-        key: 'diaspora_alignment',
-        label: isFrench ? 'Alignement diaspora' : 'Diaspora alignment',
-        score: technicalReport.scores.diaspora_alignment,
-      },
-    ];
-    return rows.sort((a, b) => a.score - b.score);
-  }, [isFrench, technicalReport]);
+  const dimensions = [
+    {
+      key: 'description_coherence',
+      label: isFrench ? 'Cohérence description' : 'Description coherence',
+      score: technicalReport.scores.description_coherence,
+    },
+    {
+      key: 'impact_coherence',
+      label: isFrench ? 'Cohérence impacts' : 'Impact coherence',
+      score: technicalReport.scores.impact_coherence,
+    },
+    {
+      key: 'contribution_coherence',
+      label: isFrench ? 'Cohérence contributions' : 'Contribution coherence',
+      score: technicalReport.scores.contribution_coherence,
+    },
+    {
+      key: 'feasibility_realism',
+      label: isFrench ? 'Faisabilité' : 'Feasibility',
+      score: technicalReport.scores.feasibility_realism,
+    },
+    {
+      key: 'diaspora_alignment',
+      label: isFrench ? 'Alignement diaspora' : 'Diaspora alignment',
+      score: technicalReport.scores.diaspora_alignment,
+    },
+  ].sort((a, b) => a.score - b.score);
 
   const globalTone = scoreColor(technicalReport.global_score);
   const toneClasses = {
@@ -830,7 +799,6 @@ function TechnicalReportModal({
 export function EncartConseils({
   formData,
   aiResult,
-  optimizedVersion,
   onAiResult,
   onOptimizedVersion,
   onAssistantResponse,
@@ -851,26 +819,26 @@ export function EncartConseils({
   const [isChatting, setIsChatting] = useState(false);
   const [isAssistantTyping, setIsAssistantTyping] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isSendingUrlContext, setIsSendingUrlContext] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [pendingSuggestedUpdates, setPendingSuggestedUpdates] = useState<AssistantChatResponse['suggested_updates'] | null>(null);
-  const [perfectedDraft, setPerfectedDraft] = useState<AssistantChatResponse['perfected_draft'] | null>(null);
-  const [consultationPoints, setConsultationPoints] = useState<string[]>([]);
-  const [quickReplies, setQuickReplies] = useState<string[]>([]);
-  const [statusChips, setStatusChips] = useState<StatusChip[]>([]);
+  const [, setPerfectedDraft] = useState<AssistantChatResponse['perfected_draft'] | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isChatOverlayOpen, setIsChatOverlayOpen] = useState(false);
   const [isDraftMode, setIsDraftMode] = useState(false);
   const [draftFormData, setDraftFormData] = useState<FormDataOpportunite>(formData);
   const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
   const [documentExtractionGuidance, setDocumentExtractionGuidance] = useState('');
+  const [urlContextLink, setUrlContextLink] = useState('');
+  const [urlContextGuidance, setUrlContextGuidance] = useState('');
   const [showFabBanner, setShowFabBanner] = useState(false);
   const [isDocumentExtractionModalOpen, setIsDocumentExtractionModalOpen] = useState(false);
+  const [isUrlContextModalOpen, setIsUrlContextModalOpen] = useState(false);
   const [isFabOpen, setIsFabOpen] = useState(false);
   const [isFabHovered, setIsFabHovered] = useState(false);
   const [shouldPulseFab, setShouldPulseFab] = useState(false);
-  const [conversationPhase, setConversationPhase] = useState<ConversationPhase>('idle');
   const [documentFlowStep, setDocumentFlowStep] = useState<DocumentFlowStep>('form');
   const [expandedAssistantMessages, setExpandedAssistantMessages] = useState<string[]>([]);
   const [confirmDiscardDraft, setConfirmDiscardDraft] = useState(false);
@@ -881,6 +849,7 @@ export function EncartConseils({
   const chatModalRef = useRef<HTMLDivElement>(null);
   const reportModalRef = useRef<HTMLDivElement>(null);
   const documentModalRef = useRef<HTMLDivElement>(null);
+  const urlModalRef = useRef<HTMLDivElement>(null);
   const fabContainerRef = useRef<HTMLDivElement>(null);
 
   const fabToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -891,7 +860,6 @@ export function EncartConseils({
   const hasMinimumMissionContext =
     missionPayload.domain.trim().length > 0 &&
     missionPayload.title.trim().length > 0 &&
-    missionPayload.detailsContributions.trim().length > 0 &&
     missionPayload.contributionTypes.trim().length > 0;
   const hasMissionChangedSinceAnalysis = Boolean(
     aiResult && lastAnalyzedSignature && currentMissionSignature !== lastAnalyzedSignature
@@ -912,91 +880,13 @@ export function EncartConseils({
     };
   }, [aiResult]);
 
-  const scoreDimensions = useMemo(() => {
-    if (!technicalReport) return [];
-
-    const dimensions = [
-      {
-        key: 'description_coherence',
-        label: isFrench ? 'Cohérence de la description' : 'Description coherence',
-        score: technicalReport.scores.description_coherence,
-      },
-      {
-        key: 'impact_coherence',
-        label: isFrench ? 'Cohérence des impacts' : 'Impact coherence',
-        score: technicalReport.scores.impact_coherence,
-      },
-      {
-        key: 'contribution_coherence',
-        label: isFrench ? 'Cohérence des contributions' : 'Contribution coherence',
-        score: technicalReport.scores.contribution_coherence,
-      },
-      {
-        key: 'feasibility_realism',
-        label: isFrench ? 'Réalisme / faisabilité' : 'Feasibility realism',
-        score: technicalReport.scores.feasibility_realism,
-      },
-      {
-        key: 'diaspora_alignment',
-        label: isFrench ? 'Alignement diaspora' : 'Diaspora alignment',
-        score: technicalReport.scores.diaspora_alignment,
-      },
-    ];
-
-    return dimensions.sort((a, b) => a.score - b.score);
-  }, [technicalReport, isFrench]);
-
-  const topPriorityActions = useMemo(() => {
-    if (!technicalReport?.recommendations?.length) return [];
-    return technicalReport.recommendations.slice(0, 3);
-  }, [technicalReport]);
-
-  const reportComparison = useMemo(() => {
-    if (!technicalReport || !previousTechnicalReport) return [];
-
-    const fields = [
-      {
-        key: 'description_coherence',
-        label: isFrench ? 'Description' : 'Description',
-        current: technicalReport.scores.description_coherence,
-        previous: previousTechnicalReport.scores.description_coherence,
-      },
-      {
-        key: 'impact_coherence',
-        label: isFrench ? 'Impacts' : 'Impacts',
-        current: technicalReport.scores.impact_coherence,
-        previous: previousTechnicalReport.scores.impact_coherence,
-      },
-      {
-        key: 'contribution_coherence',
-        label: isFrench ? 'Contributions' : 'Contributions',
-        current: technicalReport.scores.contribution_coherence,
-        previous: previousTechnicalReport.scores.contribution_coherence,
-      },
-      {
-        key: 'feasibility_realism',
-        label: isFrench ? 'Faisabilité' : 'Feasibility',
-        current: technicalReport.scores.feasibility_realism,
-        previous: previousTechnicalReport.scores.feasibility_realism,
-      },
-      {
-        key: 'diaspora_alignment',
-        label: isFrench ? 'Alignement diaspora' : 'Diaspora alignment',
-        current: technicalReport.scores.diaspora_alignment,
-        previous: previousTechnicalReport.scores.diaspora_alignment,
-      },
-    ];
-
-    return fields.filter((field) => field.current !== field.previous);
-  }, [isFrench, previousTechnicalReport, technicalReport]);
-
   const ui = {
     title: isFrench ? 'Assistant IA mission' : 'AI Mission Assistant',
     analyze: isFrench ? 'Analyser la mission' : 'Analyze mission',
     analyzing: isFrench ? 'Analyse en cours...' : 'Analyzing...',
     minimumContext: isFrench
-      ? 'Complétez au moins le domaine, le titre, les contributions attendues et le type de contribution pour lancer l\'analyse.'
-      : 'Fill at least the domain, title, expected contributions, and contribution type to run analysis.',
+      ? 'Complétez au moins le domaine, le titre et le type de contribution pour lancer l\'analyse.'
+      : 'Fill at least the domain, title, and contribution type to run analysis.',
     chatTitle: isFrench ? 'Chat assistant' : 'Assistant chat',
     chatPlaceholder: isFrench
       ? 'Ex: Comment rendre cette mission plus concrète ?'
@@ -1015,7 +905,6 @@ export function EncartConseils({
       ? 'L\'espace de travail principal est dans le chat ci-dessous.'
       : 'The main workspace is in the chat below.',
     technicalReport: isFrench ? 'Voir le rapport technique complet' : 'View Full Technical Report',
-    fullReportInChat: isFrench ? 'Voir le rapport complet' : 'View full report',
     reanalysisDone: isFrench ? 'Réanalyse terminée - le rapport a été mis à jour et l\'ancien reste disponible pour comparaison.' : 'Re-analysis complete - the report has been updated and the previous version is still available for comparison.',
     aiGeneratedForm: isFrench ? 'Formulaire IA généré' : 'AI-generated form',
     compareDraft: isFrench
@@ -1023,16 +912,16 @@ export function EncartConseils({
       : 'Compare with the original form, then choose Keep or Discard.',
     keep: 'Keep',
     discard: 'Discard',
-    statusPending: isFrench ? 'À traiter' : 'Pending',
-    statusResolved: isFrench ? 'Résolu' : 'Resolved',
-    statusClear: isFrench ? 'Stable' : 'Clear',
     typing: isFrench ? 'Assistant IA écrit' : 'AI assistant is typing',
     assistantName: isFrench ? 'Assistant IA' : 'AI Assistant',
     you: isFrench ? 'Vous' : 'You',
     openOverlay: isFrench ? 'Agrandir le chat' : 'Expand chat',
     reopenChat: isFrench ? 'Rouvrir le chat' : 'Reopen chat',
     reanalyze: isFrench ? 'Réanalyser' : 'Reanalyze',
-    noChangesDetected: isFrench ? 'Aucun changement détecté' : 'No changes detected',
+    noChangesDetected: isFrench ? 'Aucun changement' : 'No changes',
+    noChangesNotification: isFrench
+      ? 'Faites une modification si vous voulez relancer l\'analyse.'
+      : 'Make a change if you want to run analysis again.',
     closeOverlay: isFrench ? 'Réduire' : 'Collapse',
     chatOverlayTitle: isFrench ? 'Assistant IA - Vue étendue' : 'AI Assistant - Expanded view',
     reportTitle: isFrench ? 'Rapport technique complet' : 'Full technical report',
@@ -1061,6 +950,15 @@ export function EncartConseils({
     docExtractHint: isFrench 
       ? 'Décrivez ce que vous souhaitez que je concentre dans le document'
       : 'Describe what you want me to focus on in the document',
+    urlContextTitle: isFrench ? 'Démarrer avec un lien URL' : 'Start with a URL link',
+    urlContextGuide: isFrench
+      ? 'Ajoutez un lien public et indiquez ce que vous voulez extraire pour enrichir la mission.'
+      : 'Add a public link and indicate what should be extracted to enrich the mission.',
+    urlContextPlaceholder: isFrench ? 'https://exemple.com/page' : 'https://example.com/page',
+    urlContextGuidancePlaceholder: isFrench
+      ? 'Ex: Résume les objectifs et propositions de valeur utiles à cette mission.'
+      : 'Ex: Summarize the goals and value propositions useful for this mission.',
+    sendUrlToAssistant: isFrench ? 'Analyser ce lien URL' : 'Analyze this URL',
     fillDocument: isFrench ? 'Remplir Document' : 'Fill from Document',
     fillingDocument: isFrench ? 'Extraction et remplissage...' : 'Extracting and filling...',
   };
@@ -1116,7 +1014,7 @@ export function EncartConseils({
     if (typeof window === 'undefined' || !externalTriggerEventName) return;
 
     const handleExternalTrigger = async (event: Event) => {
-      const customEvent = event as CustomEvent<{ action?: 'analyze' | 'document' | 'chat' | 'reanalyze' }>;
+      const customEvent = event as CustomEvent<{ action?: 'analyze' | 'document' | 'url' | 'chat' | 'reanalyze' }>;
       const action = customEvent.detail?.action || 'analyze';
 
       setShowFabBanner(false);
@@ -1129,6 +1027,12 @@ export function EncartConseils({
         setError(null);
         setIsDocumentExtractionModalOpen(true);
         setDocumentFlowStep('form');
+        return;
+      }
+
+      if (action === 'url') {
+        setError(null);
+        setIsUrlContextModalOpen(true);
         return;
       }
 
@@ -1146,7 +1050,7 @@ export function EncartConseils({
         }
 
         if (!hasMissionChangedSinceAnalysis) {
-          setError(ui.noChangesDetected);
+          setError(ui.noChangesNotification);
           return;
         }
 
@@ -1157,7 +1061,7 @@ export function EncartConseils({
 
       if (action === 'analyze' && aiResult) {
         if (!hasMissionChangedSinceAnalysis) {
-          setError(ui.noChangesDetected);
+          setError(ui.noChangesNotification);
           return;
         }
 
@@ -1179,7 +1083,17 @@ export function EncartConseils({
     return () => {
       window.removeEventListener(externalTriggerEventName, handleExternalTrigger as EventListener);
     };
-  }, [externalTriggerEventName, isAnalyzing, aiResult, hasMinimumMissionContext, ui.minimumContext]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    externalTriggerEventName,
+    isAnalyzing,
+    aiResult,
+    hasMinimumMissionContext,
+    hasMissionChangedSinceAnalysis,
+    ui.minimumContext,
+    ui.noChangesDetected,
+    ui.noChangesNotification,
+  ]);
 
   // [UX] Readiness banner + one-time session pulse on first eligibility.
   useEffect(() => {
@@ -1234,6 +1148,11 @@ export function EncartConseils({
           setDocumentFlowStep('form');
           return;
         }
+        if (isUrlContextModalOpen) {
+          event.preventDefault();
+          setIsUrlContextModalOpen(false);
+          return;
+        }
         if (isReportOpen) {
           event.preventDefault();
           setIsReportOpen(false);
@@ -1244,6 +1163,8 @@ export function EncartConseils({
         ? reportModalRef.current
         : isDocumentExtractionModalOpen
         ? documentModalRef.current
+        : isUrlContextModalOpen
+        ? urlModalRef.current
         : isChatOverlayOpen
         ? chatModalRef.current
         : null;
@@ -1253,7 +1174,7 @@ export function EncartConseils({
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isFabOpen, isChatOverlayOpen, isDocumentExtractionModalOpen, isReportOpen]);
+  }, [isFabOpen, isChatOverlayOpen, isDocumentExtractionModalOpen, isUrlContextModalOpen, isReportOpen]);
 
   // [UX] Set initial focus inside opened modal/dialog surfaces.
   useEffect(() => {
@@ -1261,10 +1182,12 @@ export function EncartConseils({
       chatModalRef.current?.focus();
     } else if (isDocumentExtractionModalOpen) {
       documentModalRef.current?.focus();
+    } else if (isUrlContextModalOpen) {
+      urlModalRef.current?.focus();
     } else if (isReportOpen) {
       reportModalRef.current?.focus();
     }
-  }, [isChatOverlayOpen, isDocumentExtractionModalOpen, isReportOpen]);
+  }, [isChatOverlayOpen, isDocumentExtractionModalOpen, isUrlContextModalOpen, isReportOpen]);
 
   useEffect(() => {
     // Keep the AI-side form aligned with the full original form structure
@@ -1277,9 +1200,6 @@ export function EncartConseils({
   const ingestAssistantData = (data: AssistantChatResponse) => {
     setPendingSuggestedUpdates(data.suggested_updates || null);
     setPerfectedDraft((prev) => ({ ...(prev || {}), ...(data.perfected_draft || data.suggested_updates || {}) }));
-    setConsultationPoints(data.consultation_points || []);
-    setQuickReplies((data.quick_replies || []).slice(0, 4));
-    setStatusChips((data.status_chips || []) as StatusChip[]);
   };
 
   const sendChatMessage = async (
@@ -1405,21 +1325,6 @@ export function EncartConseils({
       onAiResult(analysis);
       setLastAnalyzedSignature(currentMissionSignature);
 
-      const fallbackConsultationPoints = [
-        ...(analysis.weaknesses || []).slice(0, 2),
-        ...(analysis.recommendations || []).slice(0, 1),
-      ].filter(Boolean);
-      setConsultationPoints(fallbackConsultationPoints);
-      if (!statusChips.length) {
-        setStatusChips([
-          { label: isFrench ? 'Titre' : 'Title', state: analysis.field_flags?.title ? 'pending' : 'resolved' },
-          { label: isFrench ? 'Description' : 'Description', state: analysis.field_flags?.description ? 'pending' : 'resolved' },
-          { label: isFrench ? 'Objectifs/Impacts' : 'Objectives/Impact', state: analysis.field_flags?.impacts ? 'pending' : 'resolved' },
-        ]);
-      }
-      setConversationPhase('analyzed');
-      setQuickReplies(getQuickRepliesForPhase('analyzed', isFrench));
-
       setChatHistory((prev) => {
         if (prev.length > 0) return prev;
         const seededMessages = buildPersonalizedAnalysisIntro(analysis, isFrench, missionPayload)
@@ -1504,8 +1409,6 @@ export function EncartConseils({
         remunerationPrevue: optimized.optimized_remunerationPrevue || formData.remunerationPrevue || '',
       });
       setIsDraftMode(true);
-      setConversationPhase('draft_ready');
-      setQuickReplies(getQuickRepliesForPhase('draft_ready', isFrench));
       const optimizeNote = splitAssistantMessage(
         isFrench
           ? 'Draft final généré. Une version pré-remplie est affichée. Choisissez Keep ou Discard.'
@@ -1528,37 +1431,6 @@ export function EncartConseils({
     if (!message) return;
     setChatInput('');
     await sendChatMessage(message, { includeUserMessage: true });
-  };
-
-  const handleQuickReply = async (reply: string) => {
-    const generateIntent = isFrench ? 'Générer une version améliorée' : 'Generate an improved version';
-    const applyIntent = isFrench ? 'Appliquer les modifications' : 'Apply changes';
-    const cancelIntent = isFrench ? 'Tout annuler' : 'Cancel everything';
-    const reportIntent = isFrench ? 'Voir le rapport complet' : 'View full report';
-    const analyzeIntent = isFrench ? 'Analyser à nouveau' : 'Analyze again';
-
-    if (reply === generateIntent) {
-      await handleOptimizeMission();
-      return;
-    }
-    if (reply === applyIntent) {
-      keepDraftReview();
-      return;
-    }
-    if (reply === cancelIntent) {
-      setConfirmDiscardDraft(true);
-      return;
-    }
-    if (reply === reportIntent) {
-      setIsReportOpen(true);
-      return;
-    }
-    if (reply === analyzeIntent) {
-      await handleAnalyzeMission();
-      return;
-    }
-
-    await sendChatMessage(reply, { includeUserMessage: true });
   };
 
   const handleExtractFromDocument = async () => {
@@ -1621,8 +1493,6 @@ export function EncartConseils({
         remunerationPrevue: extractedPatch.remunerationPrevue || formData.remunerationPrevue || '',
       });
       setIsDraftMode(true);
-      setConversationPhase('draft_ready');
-      setQuickReplies(getQuickRepliesForPhase('draft_ready', isFrench));
       setSelectedDocument(null);
       setDocumentExtractionGuidance('');
 
@@ -1651,12 +1521,95 @@ export function EncartConseils({
     }
   };
 
+  const handleSendUrlContextToAssistant = async () => {
+    const trimmedUrl = urlContextLink.trim();
+    const trimmedGuidance = urlContextGuidance.trim();
+
+    if (!trimmedUrl) {
+      setError(isFrench ? 'Veuillez renseigner un lien URL.' : 'Please provide a URL link.');
+      return;
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(trimmedUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error('Invalid protocol');
+      }
+    } catch {
+      setError(isFrench ? 'Le lien URL est invalide. Utilisez un lien http(s).' : 'The URL is invalid. Use an http(s) link.');
+      return;
+    }
+
+    try {
+      setError(null);
+      setIsSendingUrlContext(true);
+
+      const response = await fetch('/api/ai/extract-mission-from-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: parsedUrl.toString(),
+          guidance: trimmedGuidance,
+          currentMission: {
+            ...missionPayload,
+            conditionsMission: formData.conditionsMission,
+            publicVise: formData.publicVise,
+            missionUrgente: formData.missionUrgente,
+            actionDistance: formData.actionDistance,
+            timingAction: formData.timingAction,
+            remunerationPrevue: formData.remunerationPrevue,
+          },
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.details || data?.error || (isFrench ? 'Extraction URL impossible' : 'URL extraction failed'));
+      }
+
+      const extractedPatch = mapExtractedToForm(data.extracted || {});
+      setDraftFormData({
+        ...formData,
+        intituleAction: extractedPatch.intituleAction || formData.intituleAction || '',
+        descriptionGenerale: extractedPatch.descriptionGenerale || formData.descriptionGenerale || '',
+        impactsObjectifs: extractedPatch.impactsObjectifs || formData.impactsObjectifs || '',
+        detailsContributions: extractedPatch.detailsContributions || formData.detailsContributions || '',
+        conditionsMission: extractedPatch.conditionsMission || formData.conditionsMission || '',
+        domaineAction: extractedPatch.domaineAction || formData.domaineAction || '',
+        publicVise: extractedPatch.publicVise || formData.publicVise || '',
+        missionUrgente: extractedPatch.missionUrgente || formData.missionUrgente || '',
+        actionDistance: extractedPatch.actionDistance || formData.actionDistance || '',
+        timingAction: extractedPatch.timingAction || formData.timingAction || '',
+        remunerationPrevue: extractedPatch.remunerationPrevue || formData.remunerationPrevue || '',
+      });
+
+      setIsDraftMode(true);
+      setIsUrlContextModalOpen(false);
+      setIsChatOverlayOpen(true);
+      setUrlContextLink('');
+      setUrlContextGuidance('');
+
+      const urlNote = splitAssistantMessage(
+        isFrench
+          ? `Lien URL analysé avec Gemini et intégré en brouillon. Comparez puis choisissez Keep ou Discard.`
+          : 'URL analyzed with Gemini and merged into a draft. Compare and choose Keep or Discard.'
+      );
+      setChatHistory((prev) => [
+        ...prev,
+        ...urlNote.map((chunk) => buildMessage('assistant', chunk)),
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : isFrench ? 'Erreur lors de l\'analyse de l\'URL.' : 'Error while analyzing URL.');
+    } finally {
+      setIsSendingUrlContext(false);
+    }
+  };
+
   const keepDraftReview = () => {
     onApplyFieldUpdates(draftFormData);
     setIsDraftMode(false);
     setConfirmDiscardDraft(false);
-    setConversationPhase('applied');
-    setQuickReplies(getQuickRepliesForPhase('applied', isFrench));
     setChatHistory((prev) => [
       ...prev,
       buildMessage('assistant', isFrench ? 'Version conservée. Le formulaire a été mis à jour.' : 'Draft kept. The form has been updated.'),
@@ -1666,8 +1619,6 @@ export function EncartConseils({
   const discardDraftReview = () => {
     setIsDraftMode(false);
     setConfirmDiscardDraft(false);
-    setConversationPhase('applied');
-    setQuickReplies(getQuickRepliesForPhase('applied', isFrench));
     setChatHistory((prev) => [
       ...prev,
       buildMessage('assistant', isFrench ? 'Version ignorée. On continue avec la discussion actuelle.' : 'Draft discarded. We can continue the current discussion.'),
@@ -1885,6 +1836,22 @@ export function EncartConseils({
                 </span>
                 <span className="text-[10px] text-primary/80">{isFrench ? 'Pré-remplissage' : 'Pre-fill'}</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUrlContextModalOpen(true);
+                  setIsFabOpen(false);
+                  setShowFabBanner(false);
+                }}
+                className={`w-48 inline-flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-white border border-violet-300 text-violet-700 text-sm font-medium shadow-sm transition hover:bg-violet-50 ${focusRing}`}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <Link2 className="w-4 h-4" />
+                  {isFrench ? 'Depuis un lien URL' : 'From a URL link'}
+                </span>
+                <span className="text-[10px] text-violet-600/80">{isFrench ? 'Contexte web' : 'Web context'}</span>
+              </button>
             </div>
           )}
 
@@ -2070,6 +2037,75 @@ export function EncartConseils({
         </div>
       )}
 
+      {isUrlContextModalOpen && (
+        <div className="fixed inset-0 z-[75] bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div
+            ref={urlModalRef}
+            tabIndex={-1}
+            className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-neutral-200 p-6 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-neutral-900">{ui.urlContextTitle}</h3>
+              <button
+                type="button"
+                onClick={() => setIsUrlContextModalOpen(false)}
+                className={`text-neutral-500 hover:text-neutral-700 ${focusRing}`}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-sm text-neutral-600">{ui.urlContextGuide}</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  URL
+                </label>
+                <input
+                  type="url"
+                  value={urlContextLink}
+                  onChange={(e) => setUrlContextLink(e.target.value)}
+                  placeholder={ui.urlContextPlaceholder}
+                  className={`w-full rounded-lg border border-violet-200 bg-white p-3 text-sm ${focusRing}`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  {isFrench ? 'Orientation (optionnel)' : 'Focus (optional)'}
+                </label>
+                <textarea
+                  value={urlContextGuidance}
+                  onChange={(e) => setUrlContextGuidance(e.target.value)}
+                  placeholder={ui.urlContextGuidancePlaceholder}
+                  className={`w-full rounded-lg border border-violet-200 bg-white p-3 text-sm min-h-[90px] ${focusRing}`}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsUrlContextModalOpen(false)}
+                className={`flex-1 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 bg-white hover:bg-neutral-50 text-sm font-medium ${focusRing}`}
+              >
+                {ui.close}
+              </button>
+              <button
+                type="button"
+                onClick={handleSendUrlContextToAssistant}
+                disabled={isSendingUrlContext || !urlContextLink.trim()}
+                className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-violet-600 text-white disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium ${focusRing}`}
+              >
+                {isSendingUrlContext ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                {ui.sendUrlToAssistant}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="fixed bottom-6 left-6 z-50 max-w-sm text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 shadow">
           {error}
@@ -2089,14 +2125,6 @@ export function EncartConseils({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsReportOpen(true)}
-                  disabled={!aiResult}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-neutral-300 bg-white text-neutral-700 text-xs hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed ${focusRing}`}
-                >
-                  <Eye className="w-3.5 h-3.5" /> {ui.fullReportInChat}
-                </button>
-                <button
-                  type="button"
                   onClick={() => setIsChatOverlayOpen(false)}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-neutral-300 bg-white text-neutral-700 text-xs hover:bg-neutral-50 ${focusRing}`}
                 >
@@ -2105,7 +2133,7 @@ export function EncartConseils({
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-neutral-50">
+            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-gradient-to-b from-neutral-50 to-white">
               {chatHistory.length === 0 && (
                 <p className="text-sm text-neutral-500">{ui.chatEmpty}</p>
               )}
@@ -2177,21 +2205,21 @@ export function EncartConseils({
               )}
             </div>
 
-            <div className="p-4 border-t border-neutral-200 space-y-3 bg-white">
+            <div className="p-4 border-t border-neutral-200 bg-white">
               <div className="max-w-3xl mx-auto space-y-3">
                 <textarea
                   ref={chatInputRef}
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder={ui.chatPlaceholder}
-                  className={`w-full rounded-xl border border-primary/20 bg-white p-3 text-sm min-h-[92px] ${focusRing}`}
+                  className={`w-full rounded-xl border border-primary/20 bg-white p-3.5 text-sm min-h-[96px] shadow-sm ${focusRing}`}
                 />
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={handleSendChat}
                     disabled={isChatting || !chatInput.trim()}
-                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white shadow-sm hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}
                   >
                     {isChatting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
                     {isChatting ? ui.sending : ui.send}
@@ -2200,30 +2228,11 @@ export function EncartConseils({
                     type="button"
                     onClick={handleOptimizeMission}
                     disabled={isOptimizing || !aiResult}
-                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed font-semibold ${focusRing}`}
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed font-semibold ${focusRing}`}
                   >
                     {isOptimizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                     {isOptimizing ? ui.generatingFinal : ui.generateFinal}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsReportOpen(true)}
-                    disabled={!aiResult}
-                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-60 disabled:cursor-not-allowed ${focusRing}`}
-                  >
-                    <Eye className="w-4 h-4" />
-                    {ui.fullReportInChat}
-                  </button>
-                  {quickReplies.map((reply, index) => (
-                    <button
-                      key={`overlay-reply-${reply}-${index}`}
-                      type="button"
-                      onClick={() => handleQuickReply(reply)}
-                      className={`px-2.5 py-1.5 rounded-full border border-primary/30 text-primary text-xs bg-primary/5 hover:bg-primary/10 ${focusRing}`}
-                    >
-                      {reply}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
@@ -2259,3 +2268,4 @@ export function EncartConseils({
     </>
   );
 }
+

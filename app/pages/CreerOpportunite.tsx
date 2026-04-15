@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, AlertCircle, PlusCircle, List, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from 'next-intl';
@@ -44,12 +44,14 @@ export default function CreerOpportunite() {
   const [isAiDraftMode, setIsAiDraftMode] = useState(false);
   const [inlineSuggestion, setInlineSuggestion] = useState<InlineFieldSuggestion | null>(null);
   const [isAssistantAnalyzing, setIsAssistantAnalyzing] = useState(false);
-  const [lastAnalyzedSignature, setLastAnalyzedSignature] = useState<string | null>(null);
   const [isPrePublishReviewOpen, setIsPrePublishReviewOpen] = useState(false);
   const [isPrePublishReviewLoading, setIsPrePublishReviewLoading] = useState(false);
   const [prePublishReview, setPrePublishReview] = useState<PrePublishPolishedMission | null>(null);
   const [pendingPublishData, setPendingPublishData] = useState<FormDataOpportunite | null>(null);
   const [prePublishReviewError, setPrePublishReviewError] = useState<string | null>(null);
+  const [isAssistantMenuOpen, setIsAssistantMenuOpen] = useState(false);
+  const [assistantNotification, setAssistantNotification] = useState<string | null>(null);
+  const assistantNotificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const assistantTriggerEventName = 'encart-conseils-open-assistant';
 
   // Form state - Aligned with Cahier de Charge
@@ -141,54 +143,45 @@ export default function CreerOpportunite() {
     return null;
   };
 
-  const hasMinimumMissionContext =
-    formData.domaineAction.trim().length > 0 &&
-    formData.intituleAction.trim().length > 0 &&
-    formData.detailsContributions.trim().length > 0 &&
-    Object.values(formData.contributionsDiaspora || {}).some((value) => Boolean(value));
+  const getMissingAssistantFields = (): string[] => {
+    const missing: string[] = [];
+    if (!formData.domaineAction.trim()) missing.push('domaine');
+    if (!formData.intituleAction.trim()) missing.push('titre');
+    if (!Object.values(formData.contributionsDiaspora || {}).some((value) => Boolean(value))) {
+      missing.push('type de contribution');
+    }
+    return missing;
+  };
 
-  const currentMissionSignature = useMemo(() => {
-    const contributionTypes = Object.entries(formData.contributionsDiaspora || {})
-      .filter(([, isSelected]) => Boolean(isSelected))
-      .map(([key]) => key)
-      .join(', ');
-
-    return JSON.stringify({
-      domain: formData.domaineAction.trim(),
-      title: formData.intituleAction.trim(),
-      description: formData.descriptionGenerale.trim(),
-      impactsObjectifs: formData.impactsObjectifs.trim(),
-      detailsContributions: formData.detailsContributions.trim(),
-      contributionTypes: contributionTypes.trim(),
-    });
-  }, [
-    formData.domaineAction,
-    formData.intituleAction,
-    formData.descriptionGenerale,
-    formData.impactsObjectifs,
-    formData.detailsContributions,
-    formData.contributionsDiaspora,
-  ]);
-
-  const hasMissionChangedSinceAnalysis = Boolean(
-    aiResult && lastAnalyzedSignature && currentMissionSignature !== lastAnalyzedSignature
-  );
-
-  const assistantAnalyzeDisabled =
-    !hasMinimumMissionContext || (Boolean(aiResult) && !hasMissionChangedSinceAnalysis);
+  const handleAssistantMenuClick = () => {
+    const missing = getMissingAssistantFields();
+    if (missing.length > 0) {
+      if (assistantNotificationTimeoutRef.current) {
+        clearTimeout(assistantNotificationTimeoutRef.current);
+      }
+      setAssistantNotification(`Veuillez remplir: ${missing.join(', ')}`);
+      assistantNotificationTimeoutRef.current = setTimeout(() => {
+        setAssistantNotification(null);
+        assistantNotificationTimeoutRef.current = null;
+      }, 4000);
+    } else {
+      setIsAssistantMenuOpen(true);
+    }
+  };
 
   const handleAiResult = (result: DetailedMissionAnalysis | null) => {
     setAiResult(result);
   };
 
   useEffect(() => {
-    if (!aiResult) return;
-    // Snapshot the signature exactly when a fresh analysis result is committed,
-    // preventing stale pre-click signatures from keeping the button enabled.
-    setLastAnalyzedSignature(currentMissionSignature);
-  }, [aiResult]);
+    return () => {
+      if (assistantNotificationTimeoutRef.current) {
+        clearTimeout(assistantNotificationTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  const triggerAssistantAction = (action: 'analyze' | 'document' | 'chat') => {
+  const triggerAssistantAction = (action: 'analyze' | 'document' | 'url' | 'chat') => {
     window.dispatchEvent(new CustomEvent(assistantTriggerEventName, { detail: { action } }));
   };
 
@@ -653,12 +646,26 @@ export default function CreerOpportunite() {
                   inlineSuggestion={inlineSuggestion}
                   onKeepInlineSuggestion={handleKeepInlineSuggestion}
                   onDiscardInlineSuggestion={() => setInlineSuggestion(null)}
-                  onAssistantAnalyzeClick={() => triggerAssistantAction('analyze')}
-                  onAssistantDocumentClick={() => triggerAssistantAction('document')}
+                  onAssistantMenuClick={handleAssistantMenuClick}
+                  onAssistantAnalyzeClick={() => {
+                    triggerAssistantAction('analyze');
+                    setIsAssistantMenuOpen(false);
+                  }}
+                  onAssistantDocumentClick={() => {
+                    triggerAssistantAction('document');
+                    setIsAssistantMenuOpen(false);
+                  }}
+                  onAssistantUrlClick={() => {
+                    triggerAssistantAction('url');
+                    setIsAssistantMenuOpen(false);
+                  }}
                   onAssistantChatClick={() => triggerAssistantAction('chat')}
-                  assistantAnalyzeDisabled={assistantAnalyzeDisabled}
+                  isAssistantMenuOpen={isAssistantMenuOpen}
+                  onAssistantMenuClose={() => setIsAssistantMenuOpen(false)}
+                  assistantNotification={assistantNotification}
+                  missingAssistantFields={getMissingAssistantFields()}
                   assistantAnalyzeLoading={isAssistantAnalyzing}
-                  assistantChatDisabled={!aiResult}
+                  hasAiResult={Boolean(aiResult)}
                 />
               </div>
 
