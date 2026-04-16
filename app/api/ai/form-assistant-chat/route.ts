@@ -10,6 +10,7 @@ export async function POST(req: Request) {
       description: body?.mission?.description,
       impactsObjectifs: body?.mission?.impactsObjectifs,
       detailsContributions: body?.mission?.detailsContributions,
+      contributionTypes: body?.mission?.contributionTypes,
     };
 
     const userMessage = body?.userMessage || "";
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
     if (!mission.title || mission.title.trim().length < 8) missingContextFields.push('titre précis');
     if (!mission.description || mission.description.trim().length < 80) missingContextFields.push('description générale plus détaillée');
     if (!mission.impactsObjectifs || mission.impactsObjectifs.trim().length < 50) missingContextFields.push('impacts/objectifs mesurables');
-    if (!mission.detailsContributions || mission.detailsContributions.trim().length < 50) missingContextFields.push('profils/contributions attendus');
+    if (!mission.contributionTypes || mission.contributionTypes.trim().length === 0) missingContextFields.push('type de contribution recherché');
 
     const result = await chatWithMissionAssistant({
       mission,

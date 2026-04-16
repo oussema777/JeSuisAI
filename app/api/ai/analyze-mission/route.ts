@@ -11,8 +11,7 @@ export async function POST(req: Request) {
       domain: body.domain,
       title: body.title,
       description: body.description,
-      impactsObjectifs: body.impactsObjectifs,
-      detailsContributions: body.detailsContributions
+      impactsObjectifs: body.impactsObjectifs
     });
     
     console.log('[AI] Analysis result:', result);

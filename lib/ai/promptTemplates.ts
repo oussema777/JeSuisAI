@@ -13,9 +13,6 @@ ${data.description ?? "Non fournie"}
 Impacts/Objectifs recherchés :
 ${data.impactsObjectifs ?? "Non fournis"}
 
-Profils recherchés / Contributions :
-${data.detailsContributions ?? "Non fournis"}
-
 Critères d'évaluation :
 
 1. Cohérence interne et externe pour chaque partie :
@@ -34,7 +31,6 @@ La mission implique-t-elle réellement la diaspora ?
 
 Analysez la cohérence croisée :
 - description → impacts : la description mène-t-elle naturellement aux impacts ?
-- description → contributions : les compétences listées sont-elles nécessaires ?
 
 Les missions vagues, irréalistes ou excessivement ambitieuses doivent recevoir un score faible en feasibility_realism.
 

@@ -12,6 +12,7 @@ import {
   Trash2,
   User,
   FileUp,
+  Link2,
   MessageSquare,
 } from "lucide-react";
 import { useTranslations } from 'next-intl';
@@ -87,13 +88,17 @@ interface FormulaireOpportuniteProps {
   inlineSuggestion?: InlineFieldSuggestion | null;
   onKeepInlineSuggestion?: (field: SuggestionFieldKey, value: string) => void;
   onDiscardInlineSuggestion?: () => void;
+  onAssistantMenuClick?: () => void;
   onAssistantAnalyzeClick?: () => void;
   onAssistantDocumentClick?: () => void;
+  onAssistantUrlClick?: () => void;
   onAssistantChatClick?: () => void;
-  assistantAnalyzeDisabled?: boolean;
+  isAssistantMenuOpen?: boolean;
+  onAssistantMenuClose?: () => void;
+  assistantNotification?: string | null;
+  missingAssistantFields?: string[];
   assistantAnalyzeLoading?: boolean;
-  assistantDocumentDisabled?: boolean;
-  assistantChatDisabled?: boolean;
+  hasAiResult?: boolean;
 }
 
 export function FormulaireOpportunite({
@@ -111,13 +116,17 @@ export function FormulaireOpportunite({
   inlineSuggestion = null,
   onKeepInlineSuggestion,
   onDiscardInlineSuggestion,
+  onAssistantMenuClick,
   onAssistantAnalyzeClick,
   onAssistantDocumentClick,
+  onAssistantUrlClick,
   onAssistantChatClick,
-  assistantAnalyzeDisabled = false,
+  isAssistantMenuOpen = false,
+  onAssistantMenuClose,
+  assistantNotification = null,
+  missingAssistantFields = [],
   assistantAnalyzeLoading = false,
-  assistantDocumentDisabled = false,
-  assistantChatDisabled = false,
+  hasAiResult = false,
 }: FormulaireOpportuniteProps) {
 
   const t = useTranslations('Admin.MissionForm');
@@ -137,6 +146,8 @@ export function FormulaireOpportunite({
     remunerationPrevue: null,
   });
 
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   // Auto-scroll to field when inline suggestion appears
   useEffect(() => {
     if (inlineSuggestion && fieldRefs.current[inlineSuggestion.field]) {
@@ -148,6 +159,20 @@ export function FormulaireOpportunite({
       }
     }
   }, [inlineSuggestion]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!isAssistantMenuOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        onAssistantMenuClose?.();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isAssistantMenuOpen, onAssistantMenuClose]);
   const resolvedSubmitLabel = submitLabel || (isEditMode ? t('edit_submit') : t('create_submit'));
 
   const updateField = (field: string, value: any) => {
@@ -285,7 +310,7 @@ export function FormulaireOpportunite({
       {/* Form Header */}
       {!hideHeader && (
       <div className="bg-white rounded-t-xl p-6 border-b border-neutral-200">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col items-start gap-3">
           <div>
             <h2 className="text-neutral-900 mb-2" style={{ fontSize: "25px", fontWeight: 600 }}>
               {isEditMode ? t('title_edit') : t('title_new')}
@@ -295,47 +320,76 @@ export function FormulaireOpportunite({
             </p>
           </div>
 
-          {(onAssistantAnalyzeClick || onAssistantDocumentClick || onAssistantChatClick) && (
-            <div className="flex flex-wrap items-center gap-2">
-              {onAssistantAnalyzeClick && (
+          {/* AI Assistant controls under title/subtitle */}
+          {(onAssistantMenuClick || onAssistantAnalyzeClick || onAssistantDocumentClick || onAssistantUrlClick || onAssistantChatClick) && (
+            <div className="flex flex-col items-start gap-1" ref={menuRef}>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={onAssistantAnalyzeClick}
-                  disabled={assistantAnalyzeDisabled || assistantAnalyzeLoading}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${(assistantAnalyzeDisabled || assistantAnalyzeLoading) ? 'bg-neutral-200 text-neutral-500 cursor-not-allowed' : 'bg-primary text-white hover:opacity-90'}`}
-                  aria-label="Analyser la mission"
+                  onClick={onAssistantMenuClick}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                  aria-label="Ouvrir l'assistant IA"
                 >
                   {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  {assistantAnalyzeLoading ? 'Analyse en cours...' : 'Assistant IA'}
+                  Assistant IA
                 </button>
-              )}
 
-              {onAssistantDocumentClick && (
-                <button
-                  type="button"
-                  onClick={onAssistantDocumentClick}
-                  disabled={assistantDocumentDisabled}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${assistantDocumentDisabled ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed' : 'bg-white text-primary border-primary/30 hover:bg-primary/5'}`}
-                  aria-label="Remplir depuis un document"
-                >
-                  <FileUp className="w-4 h-4" />
-                  Document
-                </button>
-              )}
+                {hasAiResult && onAssistantChatClick && (
+                  <button
+                    type="button"
+                    onClick={onAssistantChatClick}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 transition-colors"
+                    aria-label="Ouvrir le chat assistant"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Chat
+                  </button>
+                )}
+              </div>
 
-              {onAssistantChatClick && (
-                <button
-                  type="button"
-                  onClick={onAssistantChatClick}
-                  disabled={assistantChatDisabled}
-                  className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${assistantChatDisabled ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed' : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50'}`}
-                  aria-label="Ouvrir le chat assistant"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  Chat
-                </button>
-              )}
+              <p className="text-xs text-neutral-500">
+                Requis: domaine, titre, type de contribution
+              </p>
 
+              {isAssistantMenuOpen && (
+                <div className="mt-2 flex gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
+                  {onAssistantAnalyzeClick && (
+                    <button
+                      type="button"
+                      onClick={onAssistantAnalyzeClick}
+                      className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
+                      aria-label="Analyser basé sur le formulaire"
+                    >
+                      <Sparkles className="w-4 h-4 text-green-500" />
+                      Analyser
+                    </button>
+                  )}
+
+                  {onAssistantDocumentClick && (
+                    <button
+                      type="button"
+                      onClick={onAssistantDocumentClick}
+                      className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
+                      aria-label="Ajouter un document"
+                    >
+                      <FileUp className="w-4 h-4 text-blue-500" />
+                      + Document
+                    </button>
+                  )}
+
+                  {onAssistantUrlClick && (
+                    <button
+                      type="button"
+                      onClick={onAssistantUrlClick}
+                      className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
+                      aria-label="Ajouter un lien URL"
+                    >
+                      <Link2 className="w-4 h-4 text-violet-600" />
+                      Lien URL
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -751,6 +805,15 @@ export function FormulaireOpportunite({
           </Bouton>
         </div>
       </div>
+      )}
+
+      {assistantNotification && (
+        <div className="fixed bottom-5 right-5 z-50 pointer-events-none">
+          <div className="max-w-md bg-orange-50 border border-orange-200 border-l-4 border-l-orange-500 shadow-lg rounded-lg px-4 py-3 flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
+            <AlertCircle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+            <span className="text-orange-700 text-sm font-medium">{assistantNotification}</span>
+          </div>
+        </div>
       )}
     </form>
   );
