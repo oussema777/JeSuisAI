@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, type Part } from '@google/generative-ai';
 
 type GenerateOptions = {
   temperature?: number;
@@ -8,13 +8,7 @@ type GenerateOptions = {
   maxRetries?: number;
 };
 
-type ContentPart = {
-  text?: string;
-  inlineData?: {
-    mimeType: string;
-    data: string;
-  };
-};
+type ContentPart = string | Part;
 
 type CachedGeneration = {
   text: string;
