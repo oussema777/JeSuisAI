@@ -472,10 +472,16 @@ export default function CreerOpportunite() {
         return;
       }
 
-      setIsSubmitting(false);
+      setIsSubmitting(true);
       setErrorMsg('');
       setShowSuccess(false);
-      await openPrePublishReview(formData);
+
+      try {
+        await openPrePublishReview(formData);
+      } finally {
+        setIsSubmitting(false);
+      }
+
       return;
     }
 
