@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
-import { inferMissionFromDocumentContext, type DocumentInferredMission } from '@/lib/ai/missionAgent';
+import { inferMissionFromDocumentContext, inferMissionFromDocumentFile, type DocumentInferredMission } from '@/lib/ai/missionAgent';
+import { enforceAiRateLimit } from '@/lib/ai/routeGuards';
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
@@ -11,53 +11,6 @@ type CachedExtraction = {
 };
 
 const extractionCache = new Map<string, CachedExtraction>();
-
-const extractionSchema = {
-  type: SchemaType.OBJECT,
-  properties: {
-    documentContext: { type: SchemaType.STRING },
-    intituleAction: { type: SchemaType.STRING },
-    domaineAction: { type: SchemaType.STRING },
-    descriptionGenerale: { type: SchemaType.STRING },
-    impactsObjectifs: { type: SchemaType.STRING },
-    detailsContributions: { type: SchemaType.STRING },
-    conditionsMission: { type: SchemaType.STRING },
-    publicVise: { type: SchemaType.STRING },
-    missionUrgente: { type: SchemaType.STRING },
-    actionDistance: { type: SchemaType.STRING },
-    timingAction: { type: SchemaType.STRING },
-    remunerationPrevue: { type: SchemaType.STRING },
-  },
-} as const;
-
-const extractionPrompt = `
-Vous êtes un assistant d'analyse documentaire pour pré-remplir un formulaire de mission diaspora.
-
-À partir du fichier fourni, retournez à la fois :
-1) un contexte synthétique fiable,
-2) un premier pré-remplissage des champs.
-
-Retournez UNIQUEMENT du JSON valide avec ces clés :
-{
-  "documentContext": "string",
-  "intituleAction": "string",
-  "domaineAction": "string",
-  "descriptionGenerale": "string",
-  "impactsObjectifs": "string",
-  "detailsContributions": "string",
-  "conditionsMission": "string",
-  "publicVise": "tous | diaspora | string vide si inconnu",
-  "missionUrgente": "oui | non | string vide si inconnu",
-  "actionDistance": "oui | non | partiellement | string vide si inconnu",
-  "timingAction": "permanente | ponctuelle | urgente | string vide si inconnu",
-  "remunerationPrevue": "benevole | remuneration | defraiement-local | defraiement-complet | autre | string vide si inconnu"
-}
-
-Règles :
-- Ne mettez que des informations réellement trouvées ou clairement déduites du document.
-- Si incertain, renvoyez une chaîne vide.
-- Réponse en français uniquement.
-`;
 
 const domainKeywords: Array<{ value: string; keywords: string[] }> = [
   { value: 'investissement', keywords: ['investissement', 'financement', 'capital'] },
@@ -75,16 +28,6 @@ const domainKeywords: Array<{ value: string; keywords: string[] }> = [
   { value: 'droits', keywords: ['droits', 'citoyenneté', 'civique'] },
   { value: 'urgences', keywords: ['urgence', 'catastrophe', 'crise humanitaire'] },
 ];
-
-function cleanModelResponse(raw: string) {
-  let cleaned = raw.trim();
-  if (cleaned.includes('```json')) {
-    cleaned = cleaned.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleaned.includes('```')) {
-    cleaned = cleaned.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-  return cleaned.trim();
-}
 
 function normalizeEnum(value: string | undefined, allowed: string[]) {
   const normalized = (value || '').trim().toLowerCase();
@@ -153,9 +96,9 @@ function setCached(cacheKey: string, extracted: DocumentInferredMission) {
 
 export async function POST(req: Request) {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return Response.json({ error: 'GEMINI_API_KEY manquante' }, { status: 500 });
+    const rateLimitResponse = enforceAiRateLimit(req, 'ai:extract-mission-from-document');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
     }
 
     const formData = await req.formData();
@@ -186,29 +129,10 @@ export async function POST(req: Request) {
       });
     }
 
-    const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-        responseSchema: extractionSchema,
-      },
+    const extractedBase = await inferMissionFromDocumentFile({
+      mimeType,
+      bytes,
     });
-
-    const result = await model.generateContent([
-      { text: extractionPrompt },
-      {
-        inlineData: {
-          mimeType,
-          data: bytes.toString('base64'),
-        },
-      },
-    ]);
-
-    const rawText = result.response.text();
-    const cleaned = cleanModelResponse(rawText);
-    const extractedBase = JSON.parse(cleaned) as any;
 
     const deterministic = pickBestDeterministic(extractedBase);
     let finalExtracted: DocumentInferredMission = deterministic;

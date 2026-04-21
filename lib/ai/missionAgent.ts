@@ -1,8 +1,56 @@
+import { SchemaType } from '@google/generative-ai';
 import { GeminiClient } from './geminiClient';
 import { buildAnalyzePrompt, buildDocumentToMissionPrompt, buildFormAssistantChatPrompt, buildOptimizeMissionPrompt, buildPrePublishPolishPrompt, buildSectionFocusedPrompt, detectSectionTarget } from './promptTemplates';
 import { computeGlobalScore } from './scoringEngine';
 
 let geminiClient: GeminiClient | null = null;
+
+const documentExtractionPrompt = `
+Vous êtes un assistant d'analyse documentaire pour pré-remplir un formulaire de mission diaspora.
+
+À partir du fichier fourni, retournez à la fois :
+1) un contexte synthétique fiable,
+2) un premier pré-remplissage des champs.
+
+Retournez UNIQUEMENT du JSON valide avec ces clés :
+{
+  "documentContext": "string",
+  "intituleAction": "string",
+  "domaineAction": "string",
+  "descriptionGenerale": "string",
+  "impactsObjectifs": "string",
+  "detailsContributions": "string",
+  "conditionsMission": "string",
+  "publicVise": "tous | diaspora | string vide si inconnu",
+  "missionUrgente": "oui | non | string vide si inconnu",
+  "actionDistance": "oui | non | partiellement | string vide si inconnu",
+  "timingAction": "permanente | ponctuelle | urgente | string vide si inconnu",
+  "remunerationPrevue": "benevole | remuneration | defraiement-local | defraiement-complet | autre | string vide si inconnu"
+}
+
+Règles :
+- Ne mettez que des informations réellement trouvées ou clairement déduites du document.
+- Si incertain, renvoyez une chaîne vide.
+- Réponse en français uniquement.
+`;
+
+const documentExtractionSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    documentContext: { type: SchemaType.STRING },
+    intituleAction: { type: SchemaType.STRING },
+    domaineAction: { type: SchemaType.STRING },
+    descriptionGenerale: { type: SchemaType.STRING },
+    impactsObjectifs: { type: SchemaType.STRING },
+    detailsContributions: { type: SchemaType.STRING },
+    conditionsMission: { type: SchemaType.STRING },
+    publicVise: { type: SchemaType.STRING },
+    missionUrgente: { type: SchemaType.STRING },
+    actionDistance: { type: SchemaType.STRING },
+    timingAction: { type: SchemaType.STRING },
+    remunerationPrevue: { type: SchemaType.STRING },
+  },
+} as const;
 
 function resolveGeminiApiKey() {
   return process.env.GEMINI_API_KEY || process.env.GOOGLE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -18,6 +66,16 @@ function getGeminiClient() {
 
   geminiClient = new GeminiClient(apiKey);
   return geminiClient;
+}
+
+function cleanModelResponse(raw: string) {
+  let cleaned = raw.trim();
+  if (cleaned.includes('```json')) {
+    cleaned = cleaned.replace(/```json\n?/, '').replace(/```\n?$/, '');
+  } else if (cleaned.includes('```')) {
+    cleaned = cleaned.replace(/```\n?/, '').replace(/```\n?$/, '');
+  }
+  return cleaned.trim();
 }
 
 export interface DetailedScores {
@@ -99,6 +157,30 @@ export interface DocumentInferredMission {
   remunerationPrevue?: string;
 }
 
+export async function inferMissionFromDocumentFile(data: {
+  mimeType: string;
+  bytes: Uint8Array;
+}) {
+  const response = await getGeminiClient().generateContent(
+    [
+      { text: documentExtractionPrompt },
+      {
+        inlineData: {
+          mimeType: data.mimeType,
+          data: Buffer.from(data.bytes).toString('base64'),
+        },
+      },
+    ],
+    {
+      temperature: 0.2,
+      schema: documentExtractionSchema,
+    }
+  );
+
+  const cleanedResponse = cleanModelResponse(response);
+  return JSON.parse(cleanedResponse) as Record<string, string>;
+}
+
 export interface PrePublishPolishedMission {
   intituleAction: string;
   descriptionGenerale: string;
@@ -119,18 +201,7 @@ export async function analyzeMission(data: {
   const prompt = buildAnalyzePrompt(data);
 
   const response = await getGeminiClient().generate(prompt);
-  
-  // Clean response to handle markdown code blocks
-  let cleanedResponse = response.trim();
-  
-  // Remove markdown code blocks if present
-  if (cleanedResponse.includes('```json')) {
-    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleanedResponse.includes('```')) {
-    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-  
-  cleanedResponse = cleanedResponse.trim();
+  const cleanedResponse = cleanModelResponse(response);
   
   console.log('[AI] Cleaned response:', cleanedResponse);
 
@@ -180,15 +251,7 @@ export async function optimizeMissionVersion(data: {
   const prompt = buildOptimizeMissionPrompt(data);
   const response = await getGeminiClient().generate(prompt);
 
-  let cleanedResponse = response.trim();
-
-  if (cleanedResponse.includes('```json')) {
-    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleanedResponse.includes('```')) {
-    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-
-  cleanedResponse = cleanedResponse.trim();
+  const cleanedResponse = cleanModelResponse(response);
   const parsed = JSON.parse(cleanedResponse) as OptimizedMissionVersion;
 
   const normalizeEnum = (value: string | undefined, allowed: string[]) => {
@@ -230,15 +293,7 @@ export async function chatWithMissionAssistant(data: {
   const prompt = buildFormAssistantChatPrompt(data);
   const response = await getGeminiClient().generate(prompt);
 
-  let cleanedResponse = response.trim();
-
-  if (cleanedResponse.includes('```json')) {
-    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleanedResponse.includes('```')) {
-    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-
-  cleanedResponse = cleanedResponse.trim();
+  const cleanedResponse = cleanModelResponse(response);
 
   return JSON.parse(cleanedResponse) as AssistantChatResponse;
 }
@@ -266,15 +321,7 @@ export async function chatSectionFocused(data: {
   const prompt = buildSectionFocusedPrompt(data);
   const response = await getGeminiClient().generate(prompt);
 
-  let cleanedResponse = response.trim();
-
-  if (cleanedResponse.includes('```json')) {
-    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleanedResponse.includes('```')) {
-    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-
-  cleanedResponse = cleanedResponse.trim();
+  const cleanedResponse = cleanModelResponse(response);
 
   const parsed = JSON.parse(cleanedResponse);
   return {
@@ -305,15 +352,7 @@ export async function inferMissionFromDocumentContext(data: {
   const prompt = buildDocumentToMissionPrompt(data);
   const response = await getGeminiClient().generate(prompt, { temperature: 0.3 });
 
-  let cleanedResponse = response.trim();
-
-  if (cleanedResponse.includes('```json')) {
-    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleanedResponse.includes('```')) {
-    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-
-  cleanedResponse = cleanedResponse.trim();
+  const cleanedResponse = cleanModelResponse(response);
 
   return JSON.parse(cleanedResponse) as DocumentInferredMission;
 }
@@ -331,15 +370,7 @@ export async function polishMissionBeforePublish(data: {
   const prompt = buildPrePublishPolishPrompt(data);
   const response = await getGeminiClient().generate(prompt, { temperature: 0.2 });
 
-  let cleanedResponse = response.trim();
-
-  if (cleanedResponse.includes('```json')) {
-    cleanedResponse = cleanedResponse.replace(/```json\n?/, '').replace(/```\n?$/, '');
-  } else if (cleanedResponse.includes('```')) {
-    cleanedResponse = cleanedResponse.replace(/```\n?/, '').replace(/```\n?$/, '');
-  }
-
-  cleanedResponse = cleanedResponse.trim();
+  const cleanedResponse = cleanModelResponse(response);
   const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
 
   return {

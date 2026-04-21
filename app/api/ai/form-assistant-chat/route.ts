@@ -1,7 +1,13 @@
 import { chatWithMissionAssistant, chatSectionFocused, getSectionTargetFromUserMessage } from "@/lib/ai/missionAgent";
+import { enforceAiRateLimit } from "@/lib/ai/routeGuards";
 
 export async function POST(req: Request) {
   try {
+    const rateLimitResponse = enforceAiRateLimit(req, 'ai:form-assistant-chat');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await req.json();
 
     const mission = {

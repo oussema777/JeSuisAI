@@ -1,7 +1,13 @@
 import { analyzeMission } from "@/lib/ai/missionAgent";
+import { enforceAiRateLimit } from "@/lib/ai/routeGuards";
 
 export async function POST(req: Request) {
   try {
+    const rateLimitResponse = enforceAiRateLimit(req, 'ai:analyze-mission');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     console.log('[AI] Request received');
     
     const body = await req.json();

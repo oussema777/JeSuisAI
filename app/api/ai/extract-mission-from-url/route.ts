@@ -1,4 +1,5 @@
 import { inferMissionFromDocumentContext, type DocumentInferredMission } from '@/lib/ai/missionAgent';
+import { enforceAiRateLimit } from '@/lib/ai/routeGuards';
 
 const MAX_HTML_CHARS = 120000;
 const MAX_CONTEXT_CHARS = 22000;
@@ -42,6 +43,11 @@ function normalizeExtracted(extracted: DocumentInferredMission): DocumentInferre
 
 export async function POST(req: Request) {
   try {
+    const rateLimitResponse = enforceAiRateLimit(req, 'ai:extract-mission-from-url');
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await req.json();
     const urlRaw = String(body?.url || '').trim();
     const guidance = String(body?.guidance || '').trim();
