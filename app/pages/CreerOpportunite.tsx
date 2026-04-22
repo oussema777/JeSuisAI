@@ -454,34 +454,7 @@ export default function CreerOpportunite() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.statutPublication === 'publie') {
-      if (!user) {
-        setErrorMsg("Vous devez être connecté pour créer une action.");
-        return;
-      }
-
-      if (!supabase) {
-        setErrorMsg('Configuration Supabase manquante.');
-        return;
-      }
-
-      const validationError = validateForm();
-      if (validationError) {
-        setErrorMsg(validationError);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
-      }
-
-      setIsSubmitting(true);
-      setErrorMsg('');
-      setShowSuccess(false);
-
-      try {
-        await openPrePublishReview(formData);
-      } finally {
-        setIsSubmitting(false);
-      }
-
+    if (isSubmitting || isPrePublishReviewLoading) {
       return;
     }
 
@@ -503,13 +476,13 @@ export default function CreerOpportunite() {
     }
 
     setIsSubmitting(true);
-    setErrorMsg("");
+    setErrorMsg('');
     setShowSuccess(false);
 
     try {
-      await persistOpportunity(formData);
+      await openPrePublishReview(formData);
     } catch (err: any) {
-      console.error("Submission error:", err);
+      console.error('Submission error:', err);
       setErrorMsg(err.message || t('create_error'));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
@@ -804,7 +777,9 @@ export default function CreerOpportunite() {
                     disabled={isPrePublishReviewLoading}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {'Confirmer et publier'}
+                    {pendingPublishData?.statutPublication === 'publie'
+                      ? 'Confirmer et publier'
+                      : 'Confirmer et enregistrer'}
                   </button>
                   <button
                     type="button"
