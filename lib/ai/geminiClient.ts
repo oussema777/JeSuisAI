@@ -206,16 +206,17 @@ export class GeminiClient {
       await acquireGenerationSlot();
 
       try {
-        const genModel = this.genAI.getGenerativeModel({
-          model,
-          generationConfig,
-        });
-
+        let currentModelName = model;
         let lastError: unknown = null;
 
         for (let attemptIndex = 0; attemptIndex < maxRetries; attemptIndex++) {
+          const genModel = this.genAI.getGenerativeModel({
+            model: currentModelName,
+            generationConfig,
+          });
+
           try {
-            console.log(`[GeminiClient] Attempt ${attemptIndex + 1}/${maxRetries}`);
+            console.log(`[GeminiClient] Attempt ${attemptIndex + 1}/${maxRetries} with model ${currentModelName}`);
             const result = await genModel.generateContent(parts);
             const response = await result.response;
             const text = response.text();
@@ -230,7 +231,12 @@ export class GeminiClient {
               throw error;
             }
 
-            const delay = getRetryDelayMs(attemptIndex);
+            if (currentModelName === 'gemini-2.5-flash') {
+              console.log('[GeminiClient] Falling back to stable gemini-2.5-flash-lite to bypass service overload');
+              currentModelName = 'gemini-2.5-flash-lite';
+            }
+
+            const delay = Math.max(1500, getRetryDelayMs(attemptIndex));
             console.log(`[GeminiClient] Transient failure, retrying in ${delay}ms`);
             await sleep(delay);
           }

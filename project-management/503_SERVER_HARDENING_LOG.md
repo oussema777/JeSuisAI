@@ -22,10 +22,11 @@ Files:
 - app/api/ai/extract-mission-from-document/route.ts
 - lib/ai/missionAgent.ts
 
-### 2) Safer retry policy with jitter
+### 2) Safer retry policy with jitter & Model fallback
 - Updated Gemini retry behavior to retry only transient failures.
 - Added exponential backoff with jitter to avoid synchronized retry waves.
-- Result: lower risk of retry storms and repeated 503 cascades.
+- Re-routed ultra-fast failing `gemini-2.5-flash` internal 503s queries sequentially to `gemini-2.5-flash-lite`, slowing them down over 1500+ms to break out of node-level overloading loops.
+- Result: lower risk of retry storms, immediate mitigations for persistent infrastructure-side issues, and uninterrupted UI flows.
 
 File:
 - lib/ai/geminiClient.ts
