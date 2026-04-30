@@ -151,7 +151,7 @@ Instructions :
   - optimized_remunerationPrevue : "benevole" | "remuneration" | "defraiement-local" | "defraiement-complet" | "autre" | ""
 - Répondre en français uniquement.
 
-Prise en compte des types de contribution : Si des `Types de contribution` sont fournis, adaptez la section `optimized_contributions` pour prioriser les profils et tâches correspondant à ces types. Si nécessaire, transformez ces types en courtes propositions de profils (1 à 3 items) et privilégiez la concision pour respecter les limites de champs.
+Prise en compte des types de contribution : Si des types de contribution sont fournis, adaptez la section optimized_contributions pour prioriser les profils et tâches correspondant à ces types. Si nécessaire, transformez ces types en courtes propositions de profils (1 à 3 items) et privilégiez la concision pour respecter les limites de champs.
 
 LIMITES DE LONGUEUR STRICTES (respecter scrupuleusement) :
 - optimized_title : MAX 100 caractères (~15 mots)
