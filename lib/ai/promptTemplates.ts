@@ -64,6 +64,7 @@ Pas d'explications hors JSON.
 
 export function buildOptimizeMissionPrompt(data: {
   mission: {
+    contributionTypes?: string;
     domain?: string;
     title?: string;
     description?: string;
@@ -112,6 +113,8 @@ ${data.mission.impactsObjectifs ?? "Non fournis"}
 Profils / Contributions :
 ${data.mission.detailsContributions ?? "Non fournis"}
 
+Types de contribution sélectionnés : ${data.mission.contributionTypes ?? "Non fournis"}
+
 Conditions de mission :
 ${data.mission.conditionsMission ?? "Non fournies"}
 
@@ -147,6 +150,21 @@ Instructions :
   - optimized_actionDistance : "oui" | "non" | "partiellement" | ""
   - optimized_remunerationPrevue : "benevole" | "remuneration" | "defraiement-local" | "defraiement-complet" | "autre" | ""
 - Répondre en français uniquement.
+
+Prise en compte des types de contribution : Si des `Types de contribution` sont fournis, adaptez la section `optimized_contributions` pour prioriser les profils et tâches correspondant à ces types. Si nécessaire, transformez ces types en courtes propositions de profils (1 à 3 items) et privilégiez la concision pour respecter les limites de champs.
+
+LIMITES DE LONGUEUR STRICTES (respecter scrupuleusement) :
+- optimized_title : MAX 100 caractères (~15 mots)
+- optimized_description : MAX 2000 caractères (~300 mots)
+- optimized_impacts : MAX 500 caractères (~75 mots)
+- optimized_contributions : MAX 500 caractères (~75 mots)
+- optimized_conditions : MAX 500 caractères (~75 mots)
+
+IMPORTANT : Si un champ risque de dépasser sa limite, le raccourcir intelligemment en :
+- Éliminant les redondances et formules creuses
+- Allant droit au but
+- Utilisant des listes à puces pour les contributions ou conditions
+- Favorisant la clarté sur la complétude
 
 Retournez UNIQUEMENT du JSON valide dans ce format :
 {
@@ -223,6 +241,13 @@ Objectif de réponse :
 11) Maintenir/mettre à jour perfected_draft à chaque tour (si info suffisante), sans inventer de faits.
 12) Poser au plus UNE follow_up_question précise pour faire avancer la mission.
 13) Vérifier et corriger l'orthographe, la grammaire et la clarté dans toutes les propositions.
+
+LIMITES DE CHAMPS (pour suggested_updates et perfected_draft) :
+- optimized_title : MAX 100 caractères (~15 mots)
+- optimized_description : MAX 2000 caractères (~300 mots)
+- optimized_impacts : MAX 500 caractères (~75 mots)
+- optimized_contributions : MAX 500 caractères (~75 mots)
+Ne proposer de modifications que si elles tiennent strictement dans ces limites.
 
 Retournez UNIQUEMENT du JSON valide au format :
 {

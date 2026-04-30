@@ -159,7 +159,7 @@ export default function CreerOpportunite() {
       if (assistantNotificationTimeoutRef.current) {
         clearTimeout(assistantNotificationTimeoutRef.current);
       }
-      setAssistantNotification(`Veuillez remplir: ${missing.join(', ')}`);
+      setAssistantNotification(`Remplis : ${missing.join(', ')}`);
       assistantNotificationTimeoutRef.current = setTimeout(() => {
         setAssistantNotification(null);
         assistantNotificationTimeoutRef.current = null;

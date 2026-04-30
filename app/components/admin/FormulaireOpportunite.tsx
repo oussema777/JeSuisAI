@@ -339,29 +339,53 @@ export function FormulaireOpportunite({
                     type="button"
                     onClick={onAssistantChatClick}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50 transition-colors"
-                    aria-label="Ouvrir le chat assistant"
+                    aria-label="Ouvrir la discussion avec l'assistant"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    Chat
+                    Discussion
                   </button>
                 )}
               </div>
 
-              <p className="text-xs text-neutral-500">
-                Requis: domaine, titre, type de contribution
-              </p>
+              {/* Assistant helper callout (idle / missing-fields states) */}
+              {missingAssistantFields && missingAssistantFields.length > 0 ? (
+                <div className="mt-1 rounded-xl border border-emerald-200 px-3 py-2 shadow-sm bg-white">
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm leading-none mt-0.5">✨</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight text-emerald-700">{isFrench ? 'Pour commencer :' : 'To get started :'}</p>
+                      <p className="text-sm leading-snug text-emerald-700/90 font-medium mt-0.5">
+                        {isFrench
+                          ? '👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
+                          : '👉 Provide: mission title, domain, diaspora contributions'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-1 rounded-xl border border-emerald-200 px-3 py-2 shadow-sm bg-gradient-to-r from-emerald-50/40 via-white to-emerald-50/40 animate-in fade-in">
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm leading-none mt-0.5">✨</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold leading-tight text-emerald-700">
+                        {isFrench ? '💡 Besoin d’aide ? Je peux corriger ta fiche mission ou en créer une pour toi.' : '💡 Need help? I can improve your mission form or create one for you.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {isAssistantMenuOpen && (
                 <div className="mt-2 flex gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
-                  {onAssistantAnalyzeClick && (
+                  {onAssistantChatClick && (
                     <button
                       type="button"
-                      onClick={onAssistantAnalyzeClick}
+                      onClick={onAssistantChatClick}
                       className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
-                      aria-label="Analyser basé sur le formulaire"
+                      aria-label={isFrench ? 'Écrire quelques infos (tchat)' : 'Write some info (chat)'}
                     >
-                      <Sparkles className="w-4 h-4 text-green-500" />
-                      Analyser
+                      <MessageSquare className="w-4 h-4 text-green-500" />
+                      {isFrench ? 'Ecris qqs infos (tchat)' : 'Write a few infos (chat)'}
                     </button>
                   )}
 
@@ -370,10 +394,10 @@ export function FormulaireOpportunite({
                       type="button"
                       onClick={onAssistantDocumentClick}
                       className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
-                      aria-label="Ajouter un document"
+                      aria-label={isFrench ? 'IA avec doc' : 'AI with doc'}
                     >
                       <FileUp className="w-4 h-4 text-blue-500" />
-                      + Document
+                      {isFrench ? 'IA avec doc' : 'AI with doc'}
                     </button>
                   )}
 
@@ -382,10 +406,10 @@ export function FormulaireOpportunite({
                       type="button"
                       onClick={onAssistantUrlClick}
                       className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
-                      aria-label="Ajouter un lien URL"
+                      aria-label={isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
                     >
                       <Link2 className="w-4 h-4 text-violet-600" />
-                      Lien URL
+                      {isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
                     </button>
                   )}
                 </div>
