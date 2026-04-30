@@ -15,7 +15,7 @@ import {
   Link2,
   MessageSquare,
 } from "lucide-react";
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { SectionFormulaire } from "./SectionFormulaire";
 import { ChampTexte } from "./ChampTexte";
 import { ChampTextarea } from "./ChampTextarea";
@@ -130,6 +130,8 @@ export function FormulaireOpportunite({
 }: FormulaireOpportuniteProps) {
 
   const t = useTranslations('Admin.MissionForm');
+  const locale = useLocale();
+  const isFrench = locale.startsWith('fr');
 
   // Refs for auto-scroll to suggestion fields
   const fieldRefs = useRef<Record<SuggestionFieldKey, HTMLDivElement | null>>({
