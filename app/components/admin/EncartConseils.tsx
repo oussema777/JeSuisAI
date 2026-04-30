@@ -158,10 +158,10 @@ function buildPersonalizedAnalysisIntro(
 
   const intro = isFrench
     ? safeTitle && safeDomain
-      ? `Merci pour les details. J'ai bien lu votre mission "${safeTitle}" dans le domaine "${safeDomain}".`
+      ? `Merci pour les détails. J'ai bien lu ta mission "${safeTitle}" dans le domaine "${safeDomain}".`
       : safeTitle
-      ? `Merci pour les details. J'ai bien lu votre mission "${safeTitle}".`
-      : 'Merci pour le contexte partage, je viens de passer sur votre mission.'
+      ? `Merci pour les détails. J'ai bien lu ta mission "${safeTitle}".`
+      : 'Merci pour le contexte partagé, je viens de passer sur ta mission.'
     : safeTitle && safeDomain
     ? `Thanks for the details. I carefully reviewed your mission "${safeTitle}" in the "${safeDomain}" domain.`
     : safeTitle
@@ -170,11 +170,11 @@ function buildPersonalizedAnalysisIntro(
 
   const userContext = isFrench
     ? safeDescription
-      ? `Vous indiquez actuellement: ${safeDescription.slice(0, 180)}${safeDescription.length > 180 ? '...' : ''}`
+      ? `Tu indiques actuellement : ${safeDescription.slice(0, 180)}${safeDescription.length > 180 ? '...' : ''}`
       : safeImpacts
-      ? `Vos objectifs mentionnes: ${safeImpacts.slice(0, 180)}${safeImpacts.length > 180 ? '...' : ''}`
+      ? `Tes objectifs mentionnés : ${safeImpacts.slice(0, 180)}${safeImpacts.length > 180 ? '...' : ''}`
       : safeContributions
-      ? `Vos contributions attendues: ${safeContributions.slice(0, 180)}${safeContributions.length > 180 ? '...' : ''}`
+      ? `Tes contributions attendues : ${safeContributions.slice(0, 180)}${safeContributions.length > 180 ? '...' : ''}`
       : null
     : safeDescription
     ? `You currently describe it as: ${safeDescription.slice(0, 180)}${safeDescription.length > 180 ? '...' : ''}`
@@ -186,14 +186,14 @@ function buildPersonalizedAnalysisIntro(
 
   const contributionContext = safeContributionTypes
     ? isFrench
-      ? `Types de contribution selectionnes: ${safeContributionTypes}.`
+      ? `Types de contribution sélectionnés : ${safeContributionTypes}.`
       : `Selected contribution types: ${safeContributionTypes}.`
     : null;
 
   const focus = isFrench
     ? labels.length > 0
-      ? `Si on veut l'ameliorer rapidement, je vous propose de commencer par: ${labels.join(', ')}.`
-      : 'Le fond est deja bien pose, on peut surtout affiner la formulation pour gagner en impact.'
+      ? `Si on veut l'améliorer rapidement, je te propose de commencer par : ${labels.join(', ')}.`
+      : 'Le fond est déjà bien posé, on peut surtout affiner la formulation pour gagner en impact.'
     : labels.length > 0
     ? `If we want quick improvement, I suggest starting with: ${labels.join(', ')}.`
     : 'The core is already solid; we can mostly sharpen the wording to increase impact.';
@@ -203,11 +203,11 @@ function buildPersonalizedAnalysisIntro(
     : null;
 
   const recommendation = priorityRecommendation
-    ? (isFrench ? `Je vous propose ceci en premier: ${priorityRecommendation}` : `Here is what I suggest first: ${priorityRecommendation}`)
+    ? (isFrench ? `Je te propose ceci en premier : ${priorityRecommendation}` : `Here is what I suggest first: ${priorityRecommendation}`)
     : null;
 
   const closing = isFrench
-    ? 'Vous pouvez me donner un contexte general ou des points precis a retravailler, puis cliquer sur Generer pour obtenir une version complete enrichie avec ce contexte.'
+    ? 'Tu peux me donner un contexte général ou des points précis à retravailler, puis cliquer sur Générer pour obtenir une version complète enrichie.'
     : 'You can share general context or specific areas you want help with, then click Generate to get a complete version enriched with that context.';
 
   return [intro, userContext, contributionContext, focus, weakness, recommendation, closing].filter(Boolean) as string[];
@@ -885,81 +885,81 @@ export function EncartConseils({
     analyze: isFrench ? 'Analyser la mission' : 'Analyze mission',
     analyzing: isFrench ? 'Analyse en cours...' : 'Analyzing...',
     minimumContext: isFrench
-      ? 'Complétez au moins le domaine, le titre et le type de contribution pour lancer l\'analyse.'
+      ? 'Il te faut au moins le domaine, le titre et le type de contribution pour lancer l\'analyse.'
       : 'Fill at least the domain, title, and contribution type to run analysis.',
-    chatTitle: isFrench ? 'Chat assistant' : 'Assistant chat',
+    chatTitle: isFrench ? 'Discussion avec l\'assistant' : 'Assistant chat',
     chatPlaceholder: isFrench
-      ? 'Ex: Comment rendre cette mission plus concrète ?'
+      ? 'Ex : Comment rendre cette mission plus concrète ?'
       : 'Ex: How can we make this mission more concrete?',
     chatEmpty: isFrench
-      ? 'Commencez une conversation naturelle avec l\'assistant.'
+      ? 'Commence une discussion naturelle avec l\'assistant.'
       : 'Start a natural conversation with the assistant.',
     sending: isFrench ? 'Envoi...' : 'Sending...',
     send: isFrench ? 'Envoyer' : 'Send',
-    generateFinal: isFrench ? 'Générer Formulaire Amélioré' : 'Generate Improved Form',
+    generateFinal: isFrench ? 'Générer le formulaire amélioré' : 'Generate Improved Form',
     generatingFinal: isFrench ? 'Génération en cours...' : 'Generating...',
-    extractTitle: isFrench ? 'Extraction document' : 'Document extraction',
+    extractTitle: isFrench ? 'Extraction du document' : 'Document extraction',
     extract: isFrench ? 'Extraire et pré-remplir' : 'Extract and pre-fill',
     extracting: isFrench ? 'Extraction...' : 'Extracting...',
     workspaceHint: isFrench
-      ? 'L\'espace de travail principal est dans le chat ci-dessous.'
+      ? 'Le chat ci-dessous est ton espace de travail principal.'
       : 'The main workspace is in the chat below.',
-    technicalReport: isFrench ? 'Voir le rapport technique complet' : 'View Full Technical Report',
-    reanalysisDone: isFrench ? 'Réanalyse terminée - le rapport a été mis à jour et l\'ancien reste disponible pour comparaison.' : 'Re-analysis complete - the report has been updated and the previous version is still available for comparison.',
-    aiGeneratedForm: isFrench ? 'Formulaire IA généré' : 'AI-generated form',
+    technicalReport: isFrench ? 'Voir le rapport complet' : 'View Full Technical Report',
+    reanalysisDone: isFrench ? 'Réanalyse terminée. Le rapport est à jour et l\'ancien reste disponible pour comparaison.' : 'Re-analysis complete - the report has been updated and the previous version is still available for comparison.',
+    aiGeneratedForm: isFrench ? 'Formulaire généré par l\'IA' : 'AI-generated form',
     compareDraft: isFrench
-      ? 'Comparez avec le formulaire original puis choisissez Keep ou Discard.'
+      ? 'Compare avec le formulaire original, puis choisis Conserver ou Ignorer.'
       : 'Compare with the original form, then choose Keep or Discard.',
-    keep: 'Keep',
-    discard: 'Discard',
-    typing: isFrench ? 'Assistant IA écrit' : 'AI assistant is typing',
+    keep: 'Conserver',
+    discard: 'Ignorer',
+    typing: isFrench ? 'L\'assistant écrit' : 'AI assistant is typing',
     assistantName: isFrench ? 'Assistant IA' : 'AI Assistant',
-    you: isFrench ? 'Vous' : 'You',
-    openOverlay: isFrench ? 'Agrandir le chat' : 'Expand chat',
+    you: isFrench ? 'Toi' : 'You',
+    openOverlay: isFrench ? 'Agrandir' : 'Expand chat',
     reopenChat: isFrench ? 'Rouvrir le chat' : 'Reopen chat',
-    reanalyze: isFrench ? 'Réanalyser' : 'Reanalyze',
+    reanalyze: isFrench ? 'Relancer l\'analyse' : 'Reanalyze',
     noChangesDetected: isFrench ? 'Aucun changement' : 'No changes',
     noChangesNotification: isFrench
-      ? 'Faites une modification si vous voulez relancer l\'analyse.'
+      ? 'Fais une modification si tu veux relancer l\'analyse.'
       : 'Make a change if you want to run analysis again.',
     closeOverlay: isFrench ? 'Réduire' : 'Collapse',
-    chatOverlayTitle: isFrench ? 'Assistant IA - Vue étendue' : 'AI Assistant - Expanded view',
-    reportTitle: isFrench ? 'Rapport technique complet' : 'Full technical report',
+    chatOverlayTitle: isFrench ? 'Assistant IA - vue étendue' : 'AI Assistant - Expanded view',
+    reportTitle: isFrench ? 'Rapport complet' : 'Full technical report',
     close: isFrench ? 'Fermer' : 'Close',
     globalScore: isFrench ? 'Score global' : 'Global score',
-    pmDecision: isFrench ? 'Avis chef de projet' : 'Project manager assessment',
-    notEvaluable: isFrench ? 'Non évaluable - dossier incomplet' : 'Not evaluable - incomplete dossier',
+    pmDecision: isFrench ? 'Avis du chef de projet' : 'Project manager assessment',
+    notEvaluable: isFrench ? 'Dossier incomplet' : 'Not evaluable - incomplete dossier',
     refineBeforeSelection: isFrench ? 'À retravailler avant sélection' : 'Needs refinement before selection',
     conditionalPotential: isFrench ? 'Potentiel sous conditions' : 'Potential with conditions',
-    selectionReady: isFrench ? 'Recevable pour présélection' : 'Eligible for pre-selection',
+    selectionReady: isFrench ? 'Prêt pour la présélection' : 'Eligible for pre-selection',
     scoringBreakdown: isFrench ? 'Détail des scores' : 'Score breakdown',
-    strengths: isFrench ? 'Forces' : 'Strengths',
-    weaknesses: isFrench ? 'Faiblesses' : 'Weaknesses',
+    strengths: isFrench ? 'Points forts' : 'Strengths',
+    weaknesses: isFrench ? 'Points faibles' : 'Weaknesses',
     recommendations: isFrench ? 'Recommandations' : 'Recommendations',
     priorityPlan: isFrench ? 'Plan d\'amélioration priorisé' : 'Prioritized improvement plan',
-    technicalFlags: isFrench ? 'Flags techniques' : 'Technical flags',
-    none: isFrench ? 'Aucune' : 'None',
+    technicalFlags: isFrench ? 'Signaux techniques' : 'Technical flags',
+    none: isFrench ? 'Aucun' : 'None',
     // Document extraction workflow
-    docExtractTitle: isFrench ? 'Démarrer avec un document' : 'Start with a document',
+    docExtractTitle: isFrench ? 'IA avec doc' : 'AI with doc',
     docExtractGuide: isFrench
-      ? 'Pour pré-remplir rapidement le formulaire, téléchargez un document et dites-moi ce sur quoi je dois me concentrer.'
-      : 'To quickly pre-fill the form, upload a document and tell me what to focus on.',
+      ? 'Je peux créer une fiche automatiquement à partir de ton document.'
+      : 'I can create a form automatically from your document.',
     docExtractGuidancePlaceholder: isFrench
-      ? 'Ex: Extrayez les principaux objectifs, les activités clés et le budget requis.'
-      : 'Ex: Extract the main objectives, key activities, and required budget.',
+      ? 'Ex: Concentre-toi sur les objectifs principaux, les activités clés et le budget.'
+      : 'Ex: Focus on the main objectives, key activities, and budget.',
     docExtractHint: isFrench 
-      ? 'Décrivez ce que vous souhaitez que je concentre dans le document'
-      : 'Describe what you want me to focus on in the document',
-    urlContextTitle: isFrench ? 'Démarrer avec un lien URL' : 'Start with a URL link',
+      ? 'Instructions (obligatoire)'
+      : 'Instructions (required)',
+    urlContextTitle: isFrench ? 'Lien site (URL)' : 'Website link (URL)',
     urlContextGuide: isFrench
-      ? 'Ajoutez un lien public et indiquez ce que vous voulez extraire pour enrichir la mission.'
-      : 'Add a public link and indicate what should be extracted to enrich the mission.',
+      ? 'Colle 1 lien vers une page web, un article ou une page d’organisation. Je peux en extraire les infos utiles pour créer ta fiche.'
+      : 'Paste 1 link to a web page, article, or organization page. I can extract the useful info to create your form.',
     urlContextPlaceholder: isFrench ? 'https://exemple.com/page' : 'https://example.com/page',
     urlContextGuidancePlaceholder: isFrench
-      ? 'Ex: Résume les objectifs et propositions de valeur utiles à cette mission.'
-      : 'Ex: Summarize the goals and value propositions useful for this mission.',
-    sendUrlToAssistant: isFrench ? 'Analyser ce lien URL' : 'Analyze this URL',
-    fillDocument: isFrench ? 'Remplir Document' : 'Fill from Document',
+      ? 'Ex: Résume les objectifs, les impacts et les profils recherchés pour cette mission.'
+      : 'Ex: Summarize the goals, impacts, and profiles sought for this mission.',
+    sendUrlToAssistant: isFrench ? 'Analyser le lien' : 'Analyze this URL',
+    fillDocument: isFrench ? 'Remplir avec le document' : 'Fill from Document',
     fillingDocument: isFrench ? 'Extraction et remplissage...' : 'Extracting and filling...',
   };
 
@@ -1411,7 +1411,7 @@ export function EncartConseils({
       setIsDraftMode(true);
       const optimizeNote = splitAssistantMessage(
         isFrench
-          ? 'Draft final généré. Une version pré-remplie est affichée. Choisissez Keep ou Discard.'
+          ? 'Brouillon final généré. Une version préremplie s\'affiche. Choisis Conserver ou Ignorer.'
           : 'Final draft generated. A pre-filled version is now shown. Choose Keep or Discard.'
       );
       setChatHistory((prev) => [
@@ -1419,7 +1419,7 @@ export function EncartConseils({
         ...optimizeNote.map((chunk) => buildMessage('assistant', chunk)),
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de l\'optimisation IA');
+      setError(err instanceof Error ? err.message : 'Erreur pendant l\'optimisation IA');
       onOptimizedVersion(null);
     } finally {
       setIsOptimizing(false);
@@ -1435,12 +1435,12 @@ export function EncartConseils({
 
   const handleExtractFromDocument = async () => {
     if (!selectedDocument) {
-      setError(isFrench ? 'Veuillez sélectionner un document à analyser.' : 'Please select a document to analyze.');
+      setError(isFrench ? 'Sélectionne un document à analyser.' : 'Please select a document to analyze.');
       return;
     }
 
     if (!documentExtractionGuidance.trim()) {
-      setError(isFrench ? 'Veuillez décrire ce sur quoi je dois me concentrer.' : 'Please describe what I should focus on.');
+      setError(isFrench ? 'Décris ce sur quoi je dois me concentrer.' : 'Please describe what I should focus on.');
       return;
     }
 
@@ -1499,7 +1499,7 @@ export function EncartConseils({
       // Add success message to chat
       const extractionNote = splitAssistantMessage(
         isFrench
-          ? 'Document analyse et version pre-remplie generee. Comparez puis choisissez Keep ou Discard.'
+          ? 'Document analysé et version préremplie générée. Compare puis choisis Conserver ou Ignorer.'
           : 'Document analyzed and pre-filled version generated. Compare and choose Keep or Discard.'
       );
       setChatHistory((prev) => [
@@ -1514,7 +1514,7 @@ export function EncartConseils({
         setIsChatOverlayOpen(true);
       }, 500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : isFrench ? 'Erreur pendant l\'extraction documentaire' : 'Document extraction error');
+      setError(err instanceof Error ? err.message : isFrench ? 'Erreur pendant l\'extraction du document' : 'Document extraction error');
       setDocumentFlowStep('form');
     } finally {
       setIsExtracting(false);
@@ -1526,7 +1526,7 @@ export function EncartConseils({
     const trimmedGuidance = urlContextGuidance.trim();
 
     if (!trimmedUrl) {
-      setError(isFrench ? 'Veuillez renseigner un lien URL.' : 'Please provide a URL link.');
+      setError(isFrench ? 'Renseigne un lien URL.' : 'Please provide a URL link.');
       return;
     }
 
@@ -1537,7 +1537,7 @@ export function EncartConseils({
         throw new Error('Invalid protocol');
       }
     } catch {
-      setError(isFrench ? 'Le lien URL est invalide. Utilisez un lien http(s).' : 'The URL is invalid. Use an http(s) link.');
+      setError(isFrench ? 'Le lien est invalide. Utilise un lien http(s).' : 'The URL is invalid. Use an http(s) link.');
       return;
     }
 
@@ -1592,7 +1592,7 @@ export function EncartConseils({
 
       const urlNote = splitAssistantMessage(
         isFrench
-          ? `Lien URL analysé avec Gemini et intégré en brouillon. Comparez puis choisissez Keep ou Discard.`
+          ? `Lien analysé avec Gemini et intégré en brouillon. Compare puis choisis Conserver ou Ignorer.`
           : 'URL analyzed with Gemini and merged into a draft. Compare and choose Keep or Discard.'
       );
       setChatHistory((prev) => [
@@ -1600,7 +1600,7 @@ export function EncartConseils({
         ...urlNote.map((chunk) => buildMessage('assistant', chunk)),
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : isFrench ? 'Erreur lors de l\'analyse de l\'URL.' : 'Error while analyzing URL.');
+      setError(err instanceof Error ? err.message : isFrench ? 'Erreur pendant l\'analyse du lien.' : 'Error while analyzing URL.');
     } finally {
       setIsSendingUrlContext(false);
     }
@@ -1612,7 +1612,7 @@ export function EncartConseils({
     setConfirmDiscardDraft(false);
     setChatHistory((prev) => [
       ...prev,
-      buildMessage('assistant', isFrench ? 'Version conservée. Le formulaire a été mis à jour.' : 'Draft kept. The form has been updated.'),
+        buildMessage('assistant', isFrench ? 'Version conservée. Le formulaire est à jour.' : 'Draft kept. The form has been updated.'),
     ]);
   };
 
@@ -1621,7 +1621,7 @@ export function EncartConseils({
     setConfirmDiscardDraft(false);
     setChatHistory((prev) => [
       ...prev,
-      buildMessage('assistant', isFrench ? 'Version ignorée. On continue avec la discussion actuelle.' : 'Draft discarded. We can continue the current discussion.'),
+        buildMessage('assistant', isFrench ? 'Version ignorée. On continue la discussion actuelle.' : 'Draft discarded. We can continue the current discussion.'),
     ]);
   };
 
@@ -1688,7 +1688,7 @@ export function EncartConseils({
                     <div className="flex flex-col items-end gap-2">
                       <p className="text-[11px] text-amber-700 text-right max-w-[220px]">
                         {isFrench
-                          ? 'Vous perdrez les suggestions IA - Confirmer l\'annulation?'
+                          ? 'Tu vas perdre les suggestions IA - confirmer l\'annulation ?'
                           : 'You will lose AI suggestions - Confirm cancellation?'}
                       </p>
                       <div className="flex items-center gap-2">
@@ -1944,8 +1944,8 @@ export function EncartConseils({
               <>
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-neutral-900">
-                    {isFrench ? 'Démarrer avec un document' : 'Start with a document'}
-                  </h3>
+                      {ui.docExtractTitle}
+                    </h3>
                   <button
                     type="button"
                     onClick={() => {
@@ -1959,15 +1959,13 @@ export function EncartConseils({
                 </div>
 
                 <p className="text-sm text-neutral-600">
-                  {isFrench
-                    ? 'Téléchargez un document pour pré-remplir le formulaire. Décrivez ensuite ce sur quoi je dois me concentrer.'
-                    : 'Upload a document to pre-fill the form. Then describe what I should focus on.'}
+                  {ui.docExtractGuide}
                 </p>
 
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      {isFrench ? 'Orientation (obligatoire)' : 'Focus area (required)'}
+                      {isFrench ? 'Instructions (obligatoire)' : 'Instructions (required)'}
                     </label>
                     <textarea
                       value={documentExtractionGuidance}
@@ -1987,6 +1985,11 @@ export function EncartConseils({
                       accept=".pdf,.doc,.docx,.pptx,image/png,image/jpeg,image/webp"
                       className={`w-full text-sm border border-primary/20 rounded-lg p-2 file:mr-3 file:px-3 file:py-1.5 file:bg-primary/10 file:text-primary file:border-0 file:text-xs file:font-medium ${focusRing}`}
                     />
+                    <p className="text-xs text-red-700 font-medium bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-2">
+                      {isFrench
+                        ? 'Max 10 Mo. Types acceptés : PDF, DOC, DOCX, PPTX, PNG, JPEG, WEBP.'
+                        : 'Max 10 MB. Accepted types: PDF, DOC, DOCX, PPTX, PNG, JPEG, WEBP.'}
+                    </p>
                     {selectedDocument && (
                       <p className="text-xs text-emerald-700 font-medium mt-2">✓ {selectedDocument.name}</p>
                     )}
@@ -2016,7 +2019,7 @@ export function EncartConseils({
                   >
                     <FileUp className="w-4 h-4" />
                     {isFrench
-                      ? 'Extraire le contenu et pré-remplir le formulaire'
+                      ? 'Extraire et remplir le formulaire'
                       : 'Extract content and pre-fill the form'}
                   </button>
                 </div>
@@ -2055,12 +2058,12 @@ export function EncartConseils({
               </button>
             </div>
 
-            <p className="text-sm text-neutral-600">{ui.urlContextGuide}</p>
+                <p className="text-sm text-neutral-600">{ui.urlContextGuide}</p>
 
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  URL
+                  {isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
                 </label>
                 <input
                   type="url"
@@ -2073,7 +2076,7 @@ export function EncartConseils({
 
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
-                  {isFrench ? 'Orientation (optionnel)' : 'Focus (optional)'}
+                  {isFrench ? 'Orientation à préciser (optionnel)' : 'Focus (optional)'}
                 </label>
                 <textarea
                   value={urlContextGuidance}

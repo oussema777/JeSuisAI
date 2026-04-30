@@ -27,7 +27,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   try {
     // Fetch all landing page data in parallel
     // Added .eq('lang', locale) to filters
-    let [landingRes, faqRes, missionsRes] = await Promise.all([
+    const [landingRes, faqRes, missionsRes] = await Promise.all([
       supabase.from('static_contents').select('content').eq('key', 'landing-page').eq('lang', locale).maybeSingle(),
       supabase.from('static_contents').select('content').eq('key', 'faq').eq('lang', locale).maybeSingle(),
       supabase

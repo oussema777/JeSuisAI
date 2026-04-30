@@ -3,6 +3,7 @@ import { GeminiClient } from './geminiClient';
 import { buildAnalyzePrompt, buildDocumentToMissionPrompt, buildFormAssistantChatPrompt, buildOptimizeMissionPrompt, buildPrePublishPolishPrompt, buildSectionFocusedPrompt, detectSectionTarget } from './promptTemplates';
 import { computeGlobalScore } from './scoringEngine';
 
+import { truncateForField } from './textTruncation';
 let geminiClient: GeminiClient | null = null;
 
 const documentExtractionPrompt = `
@@ -218,6 +219,7 @@ export async function analyzeMission(data: {
 
 export async function optimizeMissionVersion(data: {
   mission: {
+    contributionTypes?: string;
     domain?: string;
     title?: string;
     description?: string;
@@ -262,6 +264,11 @@ export async function optimizeMissionVersion(data: {
 
   return {
     ...parsed,
+    optimized_title: truncateForField(parsed.optimized_title || '', 'title'),
+    optimized_description: truncateForField(parsed.optimized_description || '', 'description'),
+    optimized_impacts: truncateForField(parsed.optimized_impacts || '', 'impacts'),
+    optimized_contributions: truncateForField(parsed.optimized_contributions || '', 'contributions'),
+    optimized_conditions: truncateForField(parsed.optimized_conditions || '', 'conditions'),
     optimized_publicVise: normalizeEnum(parsed.optimized_publicVise, ['tous', 'diaspora']),
     optimized_timingAction: normalizeEnum(parsed.optimized_timingAction, ['permanente', 'ponctuelle', 'urgente']),
     optimized_missionUrgente: normalizeEnum(parsed.optimized_missionUrgente, ['oui', 'non']),
@@ -294,8 +301,39 @@ export async function chatWithMissionAssistant(data: {
   const response = await getGeminiClient().generate(prompt);
 
   const cleanedResponse = cleanModelResponse(response);
+  const parsed = JSON.parse(cleanedResponse) as AssistantChatResponse;
 
-  return JSON.parse(cleanedResponse) as AssistantChatResponse;
+  if (parsed.suggested_updates) {
+    if (parsed.suggested_updates.optimized_title) {
+      parsed.suggested_updates.optimized_title = truncateForField(parsed.suggested_updates.optimized_title, 'title');
+    }
+    if (parsed.suggested_updates.optimized_description) {
+      parsed.suggested_updates.optimized_description = truncateForField(parsed.suggested_updates.optimized_description, 'description');
+    }
+    if (parsed.suggested_updates.optimized_impacts) {
+      parsed.suggested_updates.optimized_impacts = truncateForField(parsed.suggested_updates.optimized_impacts, 'impacts');
+    }
+    if (parsed.suggested_updates.optimized_contributions) {
+      parsed.suggested_updates.optimized_contributions = truncateForField(parsed.suggested_updates.optimized_contributions, 'contributions');
+    }
+  }
+
+  if (parsed.perfected_draft) {
+    if (parsed.perfected_draft.optimized_title) {
+      parsed.perfected_draft.optimized_title = truncateForField(parsed.perfected_draft.optimized_title, 'title');
+    }
+    if (parsed.perfected_draft.optimized_description) {
+      parsed.perfected_draft.optimized_description = truncateForField(parsed.perfected_draft.optimized_description, 'description');
+    }
+    if (parsed.perfected_draft.optimized_impacts) {
+      parsed.perfected_draft.optimized_impacts = truncateForField(parsed.perfected_draft.optimized_impacts, 'impacts');
+    }
+    if (parsed.perfected_draft.optimized_contributions) {
+      parsed.perfected_draft.optimized_contributions = truncateForField(parsed.perfected_draft.optimized_contributions, 'contributions');
+    }
+  }
+
+  return parsed;
 }
 
 export async function chatSectionFocused(data: {
@@ -326,7 +364,16 @@ export async function chatSectionFocused(data: {
   const parsed = JSON.parse(cleanedResponse);
   return {
     assistant_message: parsed.assistant_message || '',
-    suggested_value: parsed.suggested_value || '',
+    suggested_value: truncateForField(
+      parsed.suggested_value || '',
+      data.section === 'title'
+        ? 'title'
+        : data.section === 'impacts'
+          ? 'impacts'
+          : data.section === 'contributions'
+            ? 'contributions'
+            : 'description'
+    ),
     explanation: parsed.explanation || '',
     section: data.section,
   } as SectionFocusedResponse;
@@ -345,8 +392,10 @@ export async function inferMissionFromDocumentContext(data: {
     impactsObjectifs?: string;
     detailsContributions?: string;
     publicVise?: string;
+    missionUrgente?: string;
     actionDistance?: string;
     timingAction?: string;
+    remunerationPrevue?: string;
   };
 }) {
   const prompt = buildDocumentToMissionPrompt(data);
@@ -354,7 +403,16 @@ export async function inferMissionFromDocumentContext(data: {
 
   const cleanedResponse = cleanModelResponse(response);
 
-  return JSON.parse(cleanedResponse) as DocumentInferredMission;
+  const parsed = JSON.parse(cleanedResponse) as DocumentInferredMission;
+
+  return {
+    ...parsed,
+    intituleAction: truncateForField(parsed.intituleAction || '', 'title'),
+    descriptionGenerale: truncateForField(parsed.descriptionGenerale || '', 'description'),
+    impactsObjectifs: truncateForField(parsed.impactsObjectifs || '', 'impacts'),
+    detailsContributions: truncateForField(parsed.detailsContributions || '', 'contributions'),
+    conditionsMission: truncateForField(parsed.conditionsMission || '', 'conditions'),
+  } as DocumentInferredMission;
 }
 
 export async function polishMissionBeforePublish(data: {
@@ -374,12 +432,12 @@ export async function polishMissionBeforePublish(data: {
   const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
 
   return {
-    intituleAction: parsed.intituleAction ?? data.title ?? '',
-    descriptionGenerale: parsed.descriptionGenerale ?? data.description ?? '',
-    impactsObjectifs: parsed.impactsObjectifs ?? data.impactsObjectifs ?? '',
-    detailsContributions: parsed.detailsContributions ?? data.detailsContributions ?? '',
-    conditionsMission: parsed.conditionsMission ?? data.conditionsMission ?? '',
-    detailRemuneration: parsed.detailRemuneration ?? data.detailRemuneration ?? '',
+    intituleAction: truncateForField(parsed.intituleAction ?? data.title ?? '', 'title'),
+    descriptionGenerale: truncateForField(parsed.descriptionGenerale ?? data.description ?? '', 'description'),
+    impactsObjectifs: truncateForField(parsed.impactsObjectifs ?? data.impactsObjectifs ?? '', 'impacts'),
+    detailsContributions: truncateForField(parsed.detailsContributions ?? data.detailsContributions ?? '', 'contributions'),
+    conditionsMission: truncateForField(parsed.conditionsMission ?? data.conditionsMission ?? '', 'conditions'),
+    detailRemuneration: truncateForField(parsed.detailRemuneration ?? data.detailRemuneration ?? '', 'impacts'),
     facilitesAutres: parsed.facilitesAutres ?? data.facilitesAutres ?? '',
     remunerationAutre: parsed.remunerationAutre ?? data.remunerationAutre ?? '',
   } as PrePublishPolishedMission;

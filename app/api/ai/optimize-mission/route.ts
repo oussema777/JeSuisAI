@@ -17,6 +17,7 @@ export async function POST(req: Request) {
         description: body?.mission?.description,
         impactsObjectifs: body?.mission?.impactsObjectifs,
         detailsContributions: body?.mission?.detailsContributions,
+        contributionTypes: body?.mission?.contributionTypes,
         conditionsMission: body?.mission?.conditionsMission,
         publicVise: body?.mission?.publicVise,
         timingAction: body?.mission?.timingAction,
