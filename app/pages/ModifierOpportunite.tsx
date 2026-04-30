@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Edit2, Loader2, Check, AlertCircle, X } from "lucide-react";
 import { useTranslations } from 'next-intl';
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   FormulaireOpportunite,
-  FormDataOpportunite
+  FormDataOpportunite,
+  InlineFieldSuggestion,
+  SuggestionFieldKey,
 } from "../components/admin/FormulaireOpportunite";
+import { EncartConseils } from "../components/admin/EncartConseils";
+import type {
+  DetailedMissionAnalysis,
+  PrePublishPolishedMission,
+  OptimizedMissionVersion,
+} from "@/lib/ai/missionAgent";
 import { PreviewOpportuniteModal } from "./PreviewOpportunite";
 
 // Helper to construct image URL from path
@@ -42,6 +50,21 @@ export const ModifierOpportuniteModal = ({
   const [showPreview, setShowPreview] = useState(false);
   const [currentImagePath, setCurrentImagePath] = useState<string | null>(null);
   const [currentDocPaths, setCurrentDocPaths] = useState<string[]>([]);
+
+  const [aiResult, setAiResult] = useState<DetailedMissionAnalysis | null>(null);
+  const [optimizedVersion, setOptimizedVersion] = useState<OptimizedMissionVersion | null>(null);
+  const [isAiDraftMode, setIsAiDraftMode] = useState(false);
+  const [inlineSuggestion, setInlineSuggestion] = useState<InlineFieldSuggestion | null>(null);
+  const [isAssistantAnalyzing, setIsAssistantAnalyzing] = useState(false);
+  const [isPrePublishReviewOpen, setIsPrePublishReviewOpen] = useState(false);
+  const [isPrePublishReviewLoading, setIsPrePublishReviewLoading] = useState(false);
+  const [prePublishReview, setPrePublishReview] = useState<PrePublishPolishedMission | null>(null);
+  const [pendingPublishData, setPendingPublishData] = useState<FormDataOpportunite | null>(null);
+  const [prePublishReviewError, setPrePublishReviewError] = useState<string | null>(null);
+  const [isAssistantMenuOpen, setIsAssistantMenuOpen] = useState(false);
+  const [assistantNotification, setAssistantNotification] = useState<string | null>(null);
+  const assistantNotificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const assistantTriggerEventName = 'encart-conseils-open-assistant';
 
   // Form state
   const [formData, setFormData] = useState<FormDataOpportunite>({
@@ -198,63 +221,155 @@ export const ModifierOpportuniteModal = ({
     return dateStr; // Now coming from date/datetime-local inputs which are already ISO-ish
   };
 
+  const getMissingAssistantFields = (): string[] => {
+    const missing: string[] = [];
+    if (!formData.domaineAction.trim()) missing.push('domaine');
+    if (!formData.intituleAction.trim()) missing.push('titre');
+    if (!Object.values(formData.contributionsDiaspora || {}).some((value) => Boolean(value))) {
+      missing.push('type de contribution');
+    }
+    return missing;
+  };
+
+  const handleAssistantMenuClick = () => {
+    const missing = getMissingAssistantFields();
+    if (missing.length > 0) {
+      if (assistantNotificationTimeoutRef.current) {
+        clearTimeout(assistantNotificationTimeoutRef.current);
+      }
+      setAssistantNotification(`Remplis : ${missing.join(', ')}`);
+      assistantNotificationTimeoutRef.current = setTimeout(() => {
+        setAssistantNotification(null);
+        assistantNotificationTimeoutRef.current = null;
+      }, 4000);
+    } else {
+      setIsAssistantMenuOpen(true);
+    }
+  };
+
+  const applyAiFieldUpdates = (updates: Partial<FormDataOpportunite>) => {
+    setFormData((prev) => ({
+      ...prev,
+      ...updates,
+    }));
+  };
+
+  const handleKeepInlineSuggestion = (field: SuggestionFieldKey, value: string) => {
+    applyAiFieldUpdates({ [field]: value } as Partial<FormDataOpportunite>);
+    setInlineSuggestion(null);
+  };
+
+  const triggerAssistantAction = (action: 'analyze' | 'document' | 'url' | 'chat') => {
+    window.dispatchEvent(new CustomEvent(assistantTriggerEventName, { detail: { action } }));
+  };
+
   const validateForm = () => {
     if (!formData.intituleAction) return t('validation_title_required');
     if (!formData.domaineAction) return t('validation_domain_required');
     return null;
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const valErr = validateForm();
-    if (valErr) {
-      setErrorMsg(valErr);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMsg("");
+  const openPrePublishReview = async (sourceFormData: FormDataOpportunite) => {
+    setPrePublishReviewError(null);
+    setIsPrePublishReviewLoading(true);
 
     try {
+      const polishResponse = await fetch('/api/ai/polish-before-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: sourceFormData.intituleAction,
+          description: sourceFormData.descriptionGenerale,
+          impactsObjectifs: sourceFormData.impactsObjectifs,
+          detailsContributions: sourceFormData.detailsContributions,
+          conditionsMission: sourceFormData.conditionsMission,
+          detailRemuneration: sourceFormData.detailRemuneration,
+          facilitesAutres: sourceFormData.facilitesAutres,
+          remunerationAutre: sourceFormData.remunerationAutre,
+        }),
+      });
+
+      const polishedData = (await polishResponse.json()) as PrePublishPolishedMission & { error?: string; details?: string };
+      if (!polishResponse.ok) {
+        throw new Error(polishedData?.details || polishedData?.error || 'Pré-correction IA impossible avant mise à jour.');
+      }
+
+      const correctedData: PrePublishPolishedMission = {
+        intituleAction: polishedData.intituleAction ?? sourceFormData.intituleAction,
+        descriptionGenerale: polishedData.descriptionGenerale ?? sourceFormData.descriptionGenerale,
+        impactsObjectifs: polishedData.impactsObjectifs ?? sourceFormData.impactsObjectifs,
+        detailsContributions: polishedData.detailsContributions ?? sourceFormData.detailsContributions,
+        conditionsMission: polishedData.conditionsMission ?? sourceFormData.conditionsMission,
+        detailRemuneration: polishedData.detailRemuneration ?? sourceFormData.detailRemuneration,
+        facilitesAutres: polishedData.facilitesAutres ?? sourceFormData.facilitesAutres,
+        remunerationAutre: polishedData.remunerationAutre ?? sourceFormData.remunerationAutre,
+      };
+
+      setPrePublishReview(correctedData);
+      setPendingPublishData({
+        ...sourceFormData,
+        intituleAction: correctedData.intituleAction,
+        descriptionGenerale: correctedData.descriptionGenerale,
+        impactsObjectifs: correctedData.impactsObjectifs,
+        detailsContributions: correctedData.detailsContributions,
+        conditionsMission: correctedData.conditionsMission,
+        detailRemuneration: correctedData.detailRemuneration,
+        facilitesAutres: correctedData.facilitesAutres,
+        remunerationAutre: correctedData.remunerationAutre,
+      });
+      setIsPrePublishReviewOpen(true);
+    } catch (error) {
+      setPrePublishReviewError(error instanceof Error ? error.message : 'Erreur lors de l\'analyse IA avant mise à jour.');
+    } finally {
+      setIsPrePublishReviewLoading(false);
+    }
+  };
+
+  const confirmPrePublishReview = async () => {
+    if (!pendingPublishData) return;
+
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      // upload new files if any
       let imagePath = currentImagePath;
-      if (formData.photoRepresentation.length > 0) {
-        const paths = await uploadFiles(formData.photoRepresentation, 'photos');
+      if (pendingPublishData.photoRepresentation.length > 0) {
+        const paths = await uploadFiles(pendingPublishData.photoRepresentation, 'photos');
         imagePath = paths[0];
       }
 
       let documentPaths = [...currentDocPaths];
-      if (formData.fichierTechnique.length > 0) {
-        const newPaths = await uploadFiles(formData.fichierTechnique, 'fichiers');
+      if (pendingPublishData.fichierTechnique.length > 0) {
+        const newPaths = await uploadFiles(pendingPublishData.fichierTechnique, 'fichiers');
         documentPaths = [...documentPaths, ...newPaths];
       }
 
       const oppPayload = {
-        intitule_action: formData.intituleAction,
+        intitule_action: pendingPublishData.intituleAction,
         photo_representation_path: imagePath,
-        domaine_action: formData.domaineAction,
-        public_vise: formData.publicVise,
-        timing_action: formData.timingAction,
-        mission_urgente: formData.missionUrgente === "oui",
-        date_debut: parseDateToISO(formData.dateDebut),
-        date_fin: parseDateToISO(formData.dateFin),
-        afficher_une: formData.afficherUne,
-        action_distance: formData.actionDistance,
-        description_generale: formData.descriptionGenerale,
-        impacts_objectifs: formData.impactsObjectifs,
-        details_contributions: formData.detailsContributions,
-        contributions_diaspora: formData.contributionsDiaspora,
+        domaine_action: pendingPublishData.domaineAction,
+        public_vise: pendingPublishData.publicVise,
+        timing_action: pendingPublishData.timingAction,
+        mission_urgente: pendingPublishData.missionUrgente === "oui",
+        date_debut: parseDateToISO(pendingPublishData.dateDebut),
+        date_fin: parseDateToISO(pendingPublishData.dateFin),
+        afficher_une: pendingPublishData.afficherUne,
+        action_distance: pendingPublishData.actionDistance,
+        description_generale: pendingPublishData.descriptionGenerale,
+        impacts_objectifs: pendingPublishData.impactsObjectifs,
+        details_contributions: pendingPublishData.detailsContributions,
+        contributions_diaspora: pendingPublishData.contributionsDiaspora,
         fichier_technique_paths: documentPaths,
-        lien_site_fb: formData.lienSiteFB,
-        conditions_mission: formData.conditionsMission,
-        remuneration_prevue: formData.remunerationPrevue,
-        remuneration_autre: formData.remunerationAutre,
-        detail_remuneration: formData.detailRemuneration || null,
-        facilites: formData.facilites,
-        facilites_autres: formData.facilitesAutres,
-        emails_rappel: formData.emailsRappel,
-        statut_publication: formData.statutPublication,
-        date_publication: formData.datePublication ? new Date(formData.datePublication).toISOString() : null,
+        lien_site_fb: pendingPublishData.lienSiteFB,
+        conditions_mission: pendingPublishData.conditionsMission,
+        remuneration_prevue: pendingPublishData.remunerationPrevue,
+        remuneration_autre: pendingPublishData.remunerationAutre,
+        detail_remuneration: pendingPublishData.detailRemuneration || null,
+        facilites: pendingPublishData.facilites,
+        facilites_autres: pendingPublishData.facilitesAutres,
+        emails_rappel: pendingPublishData.emailsRappel,
+        statut_publication: pendingPublishData.statutPublication,
+        date_publication: pendingPublishData.datePublication ? new Date(pendingPublishData.datePublication).toISOString() : null,
       };
 
       const { data: updateData, error: updateError } = await supabase
@@ -271,8 +386,8 @@ export const ModifierOpportuniteModal = ({
       const { error: deleteError } = await supabase.from('opportunite_contacts').delete().eq('opportunite_id', opportunityId);
       if (deleteError) throw deleteError;
 
-      if (formData.contacts.length > 0) {
-         const contactsPayload = formData.contacts
+      if (pendingPublishData.contacts.length > 0) {
+         const contactsPayload = pendingPublishData.contacts
             .filter(c => c.nom || c.email)
             .map((c, i) => ({
              opportunite_id: opportunityId,
@@ -287,7 +402,11 @@ export const ModifierOpportuniteModal = ({
 
       setShowSuccess(true);
       if(onUpdateSuccess) onUpdateSuccess();
-      
+      setIsPrePublishReviewOpen(false);
+      setPrePublishReview(null);
+      setPendingPublishData(null);
+      setPrePublishReviewError(null);
+
       setTimeout(() => {
           onClose();
           setShowSuccess(false);
@@ -295,6 +414,35 @@ export const ModifierOpportuniteModal = ({
 
     } catch (err: any) {
       console.error("Update error:", err);
+      setErrorMsg(err.message || t('edit_update_error'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const closePrePublishReview = () => {
+    setIsPrePublishReviewOpen(false);
+    setPrePublishReview(null);
+    setPendingPublishData(null);
+    setPrePublishReviewError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const valErr = validateForm();
+    if (valErr) {
+      setErrorMsg(valErr);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg("");
+
+    try {
+      await openPrePublishReview(formData);
+    } catch (err: any) {
+      console.error('Submission error:', err);
       setErrorMsg(err.message || t('edit_update_error'));
     } finally {
       setIsSubmitting(false);
@@ -353,16 +501,50 @@ export const ModifierOpportuniteModal = ({
                     </div>
                  )}
 
-                 <FormulaireOpportunite 
-                    formData={formData}
-                    setFormData={setFormData}
-                    isSubmitting={isSubmitting}
-                    showSuccess={showSuccess}
-                    errorMsg={errorMsg}
-                    onSubmit={handleSubmit}
-                    onPreview={() => setShowPreview(true)}
-                    isEditMode
-                 />
+                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                   <div className={isAiDraftMode ? "lg:col-span-6" : "lg:col-span-8"}>
+                     <FormulaireOpportunite
+                        formData={formData}
+                        setFormData={setFormData}
+                        isSubmitting={isSubmitting}
+                        showSuccess={showSuccess}
+                        errorMsg={errorMsg}
+                        onSubmit={handleSubmit}
+                        onPreview={() => setShowPreview(true)}
+                        inlineSuggestion={inlineSuggestion}
+                        onKeepInlineSuggestion={handleKeepInlineSuggestion}
+                        onDiscardInlineSuggestion={() => setInlineSuggestion(null)}
+                        onAssistantMenuClick={handleAssistantMenuClick}
+                        onAssistantAnalyzeClick={() => { triggerAssistantAction('analyze'); setIsAssistantMenuOpen(false); }}
+                        onAssistantDocumentClick={() => { triggerAssistantAction('document'); setIsAssistantMenuOpen(false); }}
+                        onAssistantUrlClick={() => { triggerAssistantAction('url'); setIsAssistantMenuOpen(false); }}
+                        onAssistantChatClick={() => triggerAssistantAction('chat')}
+                        isAssistantMenuOpen={isAssistantMenuOpen}
+                        onAssistantMenuClose={() => setIsAssistantMenuOpen(false)}
+                        assistantNotification={assistantNotification}
+                        missingAssistantFields={getMissingAssistantFields()}
+                        assistantAnalyzeLoading={isAssistantAnalyzing}
+                        isEditMode
+                     />
+                   </div>
+
+                   <div className={`${isAiDraftMode ? 'lg:col-span-6' : 'lg:col-span-4'} hidden lg:block`}>
+                     <EncartConseils
+                       formData={formData}
+                       aiResult={aiResult}
+                       optimizedVersion={optimizedVersion}
+                       onAiResult={setAiResult}
+                       onOptimizedVersion={setOptimizedVersion}
+                       onAssistantResponse={() => {}}
+                       onApplyFieldUpdates={applyAiFieldUpdates}
+                       onDraftModeChange={setIsAiDraftMode}
+                       onInlineSuggestionChange={setInlineSuggestion}
+                       onAnalyzingStateChange={setIsAssistantAnalyzing}
+                       hideFloatingFab
+                       externalTriggerEventName={assistantTriggerEventName}
+                     />
+                   </div>
+                 </div>
               </div>
             )}
         </div>
@@ -372,6 +554,123 @@ export const ModifierOpportuniteModal = ({
         onClose={() => setShowPreview(false)}
         data={formData}
       />
+      {isPrePublishReviewOpen && prePublishReview && (
+        <div className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-neutral-200 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between gap-4 p-5 border-b border-neutral-200 bg-neutral-50">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  Aperçu IA avant mise à jour
+                </div>
+                <h3 className="text-xl font-semibold text-neutral-900">Analyse orthographique et mise en page</h3>
+                <p className="text-sm text-neutral-600 mt-1">
+                  Gemini a relu l’ensemble du formulaire et propose des corrections de forme sans changer le sens.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePrePublishReview}
+                className="w-10 h-10 rounded-full border border-neutral-200 text-neutral-500 hover:bg-neutral-100 flex items-center justify-center"
+                aria-label="Fermer"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              <div className="p-5 border-r border-neutral-200 bg-white max-h-[70vh] overflow-y-auto">
+                <h4 className="text-sm font-semibold text-neutral-900 mb-3">Ce qui a été corrigé</h4>
+                <div className="space-y-3">
+                  {[
+                    ['Titre', formData.intituleAction, prePublishReview.intituleAction],
+                    ['Description', formData.descriptionGenerale, prePublishReview.descriptionGenerale],
+                    ['Impacts', formData.impactsObjectifs, prePublishReview.impactsObjectifs],
+                    ['Contributions', formData.detailsContributions, prePublishReview.detailsContributions],
+                    ['Conditions', formData.conditionsMission, prePublishReview.conditionsMission],
+                    ['Rémunération autre', formData.remunerationAutre, prePublishReview.remunerationAutre],
+                    ['Détails rémunération', formData.detailRemuneration, prePublishReview.detailRemuneration],
+                    ['Autres facilités', formData.facilitesAutres, prePublishReview.facilitesAutres],
+                  ].map(([label, before, after]) => {
+                    if (String(before || '').trim() === String(after || '').trim()) return null;
+
+                    return (
+                      <div key={label} className="rounded-xl border border-neutral-200 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="w-2 h-2 rounded-full bg-primary" />
+                          <h5 className="text-sm font-semibold text-neutral-900">{label}</h5>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="rounded-lg bg-red-50 border border-red-100 p-2">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-red-700 mb-1">Avant</div>
+                            <p className="text-neutral-700 whitespace-pre-wrap">{String(before || '—')}</p>
+                          </div>
+                          <div className="rounded-lg bg-green-50 border border-green-100 p-2">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-green-700 mb-1">Après</div>
+                            <p className="text-neutral-800 whitespace-pre-wrap">{String(after || '—')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {![
+                    ['Titre', formData.intituleAction, prePublishReview.intituleAction],
+                    ['Description', formData.descriptionGenerale, prePublishReview.descriptionGenerale],
+                    ['Impacts', formData.impactsObjectifs, prePublishReview.impactsObjectifs],
+                    ['Contributions', formData.detailsContributions, prePublishReview.detailsContributions],
+                    ['Conditions', formData.conditionsMission, prePublishReview.conditionsMission],
+                    ['Rémunération autre', formData.remunerationAutre, prePublishReview.remunerationAutre],
+                    ['Détails rémunération', formData.detailRemuneration, prePublishReview.detailRemuneration],
+                    ['Autres facilités', formData.facilitesAutres, prePublishReview.facilitesAutres],
+                  ].some(([, before, after]) => String(before || '').trim() !== String(after || '').trim()) && (
+                    <div className="rounded-xl border border-dashed border-neutral-300 p-4 text-sm text-neutral-600">
+                      Aucune correction de forme n’était nécessaire. Le formulaire semble déjà propre.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 bg-neutral-50 max-h-[70vh] overflow-y-auto">
+                <h4 className="text-sm font-semibold text-neutral-900 mb-3">Résumé IA</h4>
+                <div className="rounded-xl bg-white border border-neutral-200 p-4 space-y-3">
+                  <p className="text-sm text-neutral-700">
+                    L’IA a vérifié l’orthographe, la grammaire et la lisibilité globale. Vous pouvez d’abord les consulter ici, puis confirmer seulement si le rendu vous convient.
+                  </p>
+                  {prePublishReviewError && (
+                    <div className="rounded-lg bg-red-50 border border-red-100 p-3 text-sm text-red-700">
+                      {prePublishReviewError}
+                    </div>
+                  )}
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-sm text-neutral-700">
+                    Aucune écriture en base de données n’est faite tant que vous n’avez pas confirmé depuis cette fenêtre.
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={confirmPrePublishReview}
+                    disabled={isPrePublishReviewLoading}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {pendingPublishData?.statutPublication === 'publie'
+                      ? 'Confirmer et publier'
+                      : 'Confirmer et enregistrer'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closePrePublishReview}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white border border-neutral-300 text-neutral-700 font-medium hover:bg-neutral-50"
+                  >
+                    Retour
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
