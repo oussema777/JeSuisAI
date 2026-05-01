@@ -854,6 +854,11 @@ export function EncartConseils({
 
   const fabToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fabPulseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chatAutoOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressChatAutoOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressChatAutoOpenRef = useRef(false);
+
+  const suppressChatAutoOpenEventName = 'encart-conseils-suppress-chat-autopen';
 
   const missionPayload = useMemo(() => buildMissionPayload(formData), [formData]);
   const currentMissionSignature = useMemo(() => buildMissionSignature(missionPayload), [missionPayload]);
@@ -958,8 +963,8 @@ export function EncartConseils({
     urlContextGuidancePlaceholder: isFrench
       ? 'Ex: Résume les objectifs, les impacts et les profils recherchés pour cette mission.'
       : 'Ex: Summarize the goals, impacts, and profiles sought for this mission.',
-    sendUrlToAssistant: isFrench ? 'Analyser le lien' : 'Analyze this URL',
-    fillDocument: isFrench ? 'Remplir avec le document' : 'Fill from Document',
+    sendUrlToAssistant: 'Générer ma fiche mission automatiquement',
+    fillDocument: 'Générer ma fiche mission automatiquement',
     fillingDocument: isFrench ? 'Extraction et remplissage...' : 'Extracting and filling...',
   };
 
@@ -1008,6 +1013,61 @@ export function EncartConseils({
   useEffect(() => {
     onAnalyzingStateChange?.(isAnalyzing);
   }, [isAnalyzing, onAnalyzingStateChange]);
+
+  const suppressNextChatAutoOpen = () => {
+    suppressChatAutoOpenRef.current = true;
+
+    if (chatAutoOpenTimeoutRef.current) {
+      window.clearTimeout(chatAutoOpenTimeoutRef.current);
+      chatAutoOpenTimeoutRef.current = null;
+    }
+
+    if (suppressChatAutoOpenTimeoutRef.current) {
+      window.clearTimeout(suppressChatAutoOpenTimeoutRef.current);
+    }
+
+    suppressChatAutoOpenTimeoutRef.current = window.setTimeout(() => {
+      suppressChatAutoOpenRef.current = false;
+      suppressChatAutoOpenTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleSuppressChatAutoOpen = () => {
+      suppressNextChatAutoOpen();
+    };
+
+    window.addEventListener(suppressChatAutoOpenEventName, handleSuppressChatAutoOpen);
+
+    return () => {
+      window.removeEventListener(suppressChatAutoOpenEventName, handleSuppressChatAutoOpen);
+      if (suppressChatAutoOpenTimeoutRef.current) {
+        window.clearTimeout(suppressChatAutoOpenTimeoutRef.current);
+      }
+      if (chatAutoOpenTimeoutRef.current) {
+        window.clearTimeout(chatAutoOpenTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleChatAutoOpen = (delayMs: number, beforeOpen?: () => void) => {
+    if (chatAutoOpenTimeoutRef.current) {
+      window.clearTimeout(chatAutoOpenTimeoutRef.current);
+    }
+
+    chatAutoOpenTimeoutRef.current = window.setTimeout(() => {
+      chatAutoOpenTimeoutRef.current = null;
+      beforeOpen?.();
+
+      if (suppressChatAutoOpenRef.current) {
+        return;
+      }
+
+      setIsChatOverlayOpen(true);
+    }, delayMs);
+  };
 
   // [UX] Allow a header-level trigger to open the assistant without relying on floating FAB placement.
   useEffect(() => {
@@ -1310,7 +1370,7 @@ export function EncartConseils({
       const response = await fetch('/api/ai/analyze-mission', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(missionPayload),
+        body: JSON.stringify({ ...missionPayload, language: isFrench ? 'fr' : 'en' }),
       });
 
       const data = await response.json();
@@ -1334,9 +1394,7 @@ export function EncartConseils({
       });
 
       // Automatically open the expanded chat with smooth transition
-      setTimeout(() => {
-        setIsChatOverlayOpen(true);
-      }, 300);
+      scheduleChatAutoOpen(300);
 
       setShowFabBanner(false);
 
@@ -1378,6 +1436,7 @@ export function EncartConseils({
             actionDistance: formData.actionDistance,
             remunerationPrevue: formData.remunerationPrevue,
           },
+          language: isFrench ? 'fr' : 'en',
           analysis: aiResult,
           chatContext: {
             summary: 'Optimisation depuis la page de création mission',
@@ -1464,6 +1523,7 @@ export function EncartConseils({
         })
       );
       multipart.append('extractionGuidance', documentExtractionGuidance);
+      multipart.append('language', isFrench ? 'fr' : 'en');
 
       const response = await fetch('/api/ai/extract-mission-from-document', {
         method: 'POST',
@@ -1508,11 +1568,10 @@ export function EncartConseils({
       ]);
 
       setDocumentFlowStep('done');
-      window.setTimeout(() => {
+      scheduleChatAutoOpen(500, () => {
         setIsDocumentExtractionModalOpen(false);
         setDocumentFlowStep('form');
-        setIsChatOverlayOpen(true);
-      }, 500);
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : isFrench ? 'Erreur pendant l\'extraction du document' : 'Document extraction error');
       setDocumentFlowStep('form');
@@ -1560,6 +1619,7 @@ export function EncartConseils({
             timingAction: formData.timingAction,
             remunerationPrevue: formData.remunerationPrevue,
           },
+          language: isFrench ? 'fr' : 'en',
         }),
       });
 
@@ -1586,7 +1646,7 @@ export function EncartConseils({
 
       setIsDraftMode(true);
       setIsUrlContextModalOpen(false);
-      setIsChatOverlayOpen(true);
+      scheduleChatAutoOpen(0);
       setUrlContextLink('');
       setUrlContextGuidance('');
 
@@ -1607,6 +1667,7 @@ export function EncartConseils({
   };
 
   const keepDraftReview = () => {
+    suppressNextChatAutoOpen();
     onApplyFieldUpdates(draftFormData);
     setIsDraftMode(false);
     setConfirmDiscardDraft(false);

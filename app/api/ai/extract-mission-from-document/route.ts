@@ -104,6 +104,8 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const file = formData.get('file');
     const currentMissionRaw = formData.get('currentMission');
+    const languageRaw = formData.get('language');
+    const language = String(languageRaw || 'fr') === 'en' ? 'en' : 'fr';
 
     if (!(file instanceof File)) {
       return Response.json({ error: 'Aucun fichier reçu' }, { status: 400 });
@@ -132,7 +134,7 @@ export async function POST(req: Request) {
     const extractedBase = await inferMissionFromDocumentFile({
       mimeType,
       bytes,
-    });
+    }, language);
 
     const deterministic = pickBestDeterministic(extractedBase);
     let finalExtracted: DocumentInferredMission = deterministic;
@@ -153,7 +155,7 @@ export async function POST(req: Request) {
       const reasoned = await inferMissionFromDocumentContext({
         documentContext: extractedBase?.documentContext || '',
         currentMission,
-      });
+      }, language);
 
       finalExtracted = {
         intituleAction: reasoned.intituleAction?.trim() || deterministic.intituleAction,

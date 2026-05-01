@@ -25,6 +25,7 @@ export async function POST(req: Request) {
         actionDistance: body?.mission?.actionDistance,
         remunerationPrevue: body?.mission?.remunerationPrevue,
       },
+      language: body?.language === 'en' ? 'en' : 'fr',
       analysis: {
         scores: body?.analysis?.scores || {},
         strengths: body?.analysis?.strengths || [],

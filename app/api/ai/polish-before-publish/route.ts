@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       detailRemuneration: body?.detailRemuneration,
       facilitesAutres: body?.facilitesAutres,
       remunerationAutre: body?.remunerationAutre,
+      language: body?.language === 'en' ? 'en' : 'fr',
     });
 
     return Response.json(result);

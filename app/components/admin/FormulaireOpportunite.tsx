@@ -421,7 +421,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'Écrire quelques infos (tchat)' : 'Write some info (chat)'}
                     >
                       <Sparkles className="w-4 h-4 text-green-500" />
-                      {isFrench ? 'Ecris qqs infos (tchat)' : 'Write a few infos (chat)'}
+                      {'Générer ma fiche mission automatiquement'}
                     </button>
                   )}
 
@@ -433,7 +433,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'IA avec doc' : 'AI with doc'}
                     >
                       <FileUp className="w-4 h-4 text-blue-500" />
-                      {isFrench ? 'IA avec doc' : 'AI with doc'}
+                      {'Générer ma fiche mission automatiquement'}
                     </button>
                   )}
 
@@ -445,7 +445,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
                     >
                       <Link2 className="w-4 h-4 text-violet-600" />
-                      {isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
+                      {'Générer ma fiche mission automatiquement'}
                     </button>
                   )}
                 </div>
