@@ -154,19 +154,7 @@ export default function CreerOpportunite() {
   };
 
   const handleAssistantMenuClick = () => {
-    const missing = getMissingAssistantFields();
-    if (missing.length > 0) {
-      if (assistantNotificationTimeoutRef.current) {
-        clearTimeout(assistantNotificationTimeoutRef.current);
-      }
-      setAssistantNotification(`Remplis : ${missing.join(', ')}`);
-      assistantNotificationTimeoutRef.current = setTimeout(() => {
-        setAssistantNotification(null);
-        assistantNotificationTimeoutRef.current = null;
-      }, 4000);
-    } else {
-      setIsAssistantMenuOpen(true);
-    }
+    setIsAssistantMenuOpen((prev) => !prev);
   };
 
   const handleAiResult = (result: DetailedMissionAnalysis | null) => {
