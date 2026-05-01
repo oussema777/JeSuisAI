@@ -270,6 +270,39 @@ html {
   animation-play-state: paused;
 }
 
+.assistant-callout {
+  margin-top: 0.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: linear-gradient(to right, rgba(209, 250, 229, 0.55), #fff, rgba(236, 253, 245, 0.55));
+  padding: 0.5rem 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.assistant-callout.is-active {
+  border-color: rgba(110, 231, 183, 0.7);
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.12);
+}
+
+.assistant-callout__icon {
+  animation: assistantCalloutSpark 1600ms ease-in-out infinite;
+}
+
+@keyframes assistantCalloutEnter {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes assistantCalloutIdle {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-1px) scale(1.01); }
+}
+
+@keyframes assistantCalloutSpark {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.9; }
+  50% { transform: scale(1.12) rotate(8deg); opacity: 1; }
+}
+
 /* Hide scrollbar for horizontal slider */
 .scrollbar-hide {
   -ms-overflow-style: none;

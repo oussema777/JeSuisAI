@@ -150,6 +150,14 @@ export function FormulaireOpportunite({
   });
 
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const assistantCalloutActive = shouldShowStarterChecklist;
+  const assistantCalloutMessage = assistantCalloutActive
+    ? (isFrench
+      ? 'Pour commencer : 👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
+      : 'To get started : 👉 Provide: mission title, domain, diaspora contributions')
+    : (isFrench
+      ? '💡 Besoin d’aide ? Je peux corriger ta fiche mission ou en créer une pour toi.'
+      : '💡 Need help? I can improve your mission form or create one for you.');
 
   // Auto-scroll to field when inline suggestion appears
   useEffect(() => {
@@ -352,7 +360,7 @@ export function FormulaireOpportunite({
                   aria-label={isFrench ? 'Ouvrir l\'assistant IA' : 'Open AI assistant'}
                 >
                   {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  <span className="inline-block animate-bounce">🤖</span>
+                  <span aria-hidden="true">🤖</span>
                   {isFrench ? 'Assistant IA' : 'AI Assistant'}
                 </button>
 
@@ -369,31 +377,31 @@ export function FormulaireOpportunite({
                 )}
               </div>
 
-              {/* Assistant helper callout (idle / missing-fields states) */}
-              <div className="mt-1 rounded-xl border border-emerald-200 px-3 py-2 shadow-sm bg-gradient-to-r from-emerald-50/40 via-white to-emerald-50/40 animate-in fade-in">
+              <div
+                className={`assistant-callout ${assistantCalloutActive ? 'is-active' : ''}`}
+                style={{
+                  animation: assistantCalloutActive
+                    ? 'assistantCalloutEnter 360ms ease-out, assistantCalloutIdle 2600ms ease-in-out 360ms infinite'
+                    : 'assistantCalloutIdle 2600ms ease-in-out infinite',
+                }}
+              >
                 <div className="flex items-start gap-2">
-                  <span className="text-sm leading-none mt-0.5 inline-block animate-pulse">🤖</span>
+                  <span
+                    className={`assistant-callout__icon text-sm leading-none mt-0.5 ${assistantCalloutActive ? 'text-emerald-600' : 'text-primary'}`}
+                    aria-hidden="true"
+                  >
+                    🤖
+                  </span>
                   <div className="min-w-0">
-                    {shouldShowStarterChecklist ? (
-                      <>
-                        <p className="text-sm font-semibold leading-tight text-emerald-700">{isFrench ? 'Pour commencer :' : 'To get started :'}</p>
-                        <p className="text-sm leading-snug text-emerald-700/90 font-medium mt-0.5">
-                          {isFrench
-                            ? '👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
-                            : '👉 Provide: mission title, domain, diaspora contributions'}
-                        </p>
-                      </>
-                    ) : (
-                      <p className="text-sm font-semibold leading-tight text-emerald-700">
-                        {isFrench ? '💡 Besoin d’aide ? Je peux corriger ta fiche mission ou en créer une pour toi.' : '💡 Need help? I can improve your mission form or create one for you.'}
-                      </p>
-                    )}
+                    <p className={`text-sm font-semibold leading-tight ${assistantCalloutActive ? 'text-emerald-700' : 'text-primary'}`}>
+                      {assistantCalloutMessage}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {isAssistantMenuOpen && (
-                <div className="mt-2 flex gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
+                <div className="mt-2 flex flex-col gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200 w-fit">
                   {onAssistantChatClick && (
                     <button
                       type="button"
@@ -401,7 +409,7 @@ export function FormulaireOpportunite({
                       className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-md bg-white text-neutral-700 border border-neutral-200 hover:bg-neutral-100 transition-colors text-xs"
                       aria-label={isFrench ? 'Écrire quelques infos (tchat)' : 'Write some info (chat)'}
                     >
-                      <MessageSquare className="w-4 h-4 text-green-500" />
+                      <Sparkles className="w-4 h-4 text-green-500" />
                       {isFrench ? 'Ecris qqs infos (tchat)' : 'Write a few infos (chat)'}
                     </button>
                   )}
