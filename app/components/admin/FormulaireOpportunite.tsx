@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Eye,
   Save,
@@ -123,7 +123,6 @@ export function FormulaireOpportunite({
   onAssistantChatClick,
   isAssistantMenuOpen = false,
   onAssistantMenuClose,
-  assistantNotification = null,
   missingAssistantFields = [],
   assistantAnalyzeLoading = false,
   hasAiResult = false,
@@ -132,6 +131,8 @@ export function FormulaireOpportunite({
   const t = useTranslations('Admin.MissionForm');
   const locale = useLocale();
   const isFrench = locale.startsWith('fr');
+  const [showStarterChecklist, setShowStarterChecklist] = useState(false);
+  const shouldShowStarterChecklist = showStarterChecklist && missingAssistantFields.length > 0;
 
   // Refs for auto-scroll to suggestion fields
   const fieldRefs = useRef<Record<SuggestionFieldKey, HTMLDivElement | null>>({
@@ -175,6 +176,24 @@ export function FormulaireOpportunite({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isAssistantMenuOpen, onAssistantMenuClose]);
+
+  // Show starter checklist briefly when assistant is opened with missing required fields,
+  // then return to the default help message.
+  useEffect(() => {
+    if (isAssistantMenuOpen && missingAssistantFields.length > 0) {
+      setShowStarterChecklist(true);
+      const timeoutId = window.setTimeout(() => {
+        setShowStarterChecklist(false);
+      }, 3500);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    if (!isAssistantMenuOpen) {
+      setShowStarterChecklist(false);
+    }
+  }, [isAssistantMenuOpen, missingAssistantFields.length]);
+
   const resolvedSubmitLabel = submitLabel || (isEditMode ? t('edit_submit') : t('create_submit'));
 
   const updateField = (field: string, value: any) => {
@@ -330,10 +349,11 @@ export function FormulaireOpportunite({
                   type="button"
                   onClick={onAssistantMenuClick}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
-                  aria-label="Ouvrir l'assistant IA"
+                  aria-label={isFrench ? 'Ouvrir l\'assistant IA' : 'Open AI assistant'}
                 >
                   {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Assistant IA
+                  <span className="inline-block animate-bounce">🤖</span>
+                  {isFrench ? 'Assistant IA' : 'AI Assistant'}
                 </button>
 
                 {hasAiResult && onAssistantChatClick && (
@@ -350,32 +370,27 @@ export function FormulaireOpportunite({
               </div>
 
               {/* Assistant helper callout (idle / missing-fields states) */}
-              {missingAssistantFields && missingAssistantFields.length > 0 ? (
-                <div className="mt-1 rounded-xl border border-emerald-200 px-3 py-2 shadow-sm bg-white">
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm leading-none mt-0.5">✨</span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold leading-tight text-emerald-700">{isFrench ? 'Pour commencer :' : 'To get started :'}</p>
-                      <p className="text-sm leading-snug text-emerald-700/90 font-medium mt-0.5">
-                        {isFrench
-                          ? '👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
-                          : '👉 Provide: mission title, domain, diaspora contributions'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-1 rounded-xl border border-emerald-200 px-3 py-2 shadow-sm bg-gradient-to-r from-emerald-50/40 via-white to-emerald-50/40 animate-in fade-in">
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm leading-none mt-0.5">✨</span>
-                    <div className="min-w-0">
+              <div className="mt-1 rounded-xl border border-emerald-200 px-3 py-2 shadow-sm bg-gradient-to-r from-emerald-50/40 via-white to-emerald-50/40 animate-in fade-in">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm leading-none mt-0.5 inline-block animate-pulse">🤖</span>
+                  <div className="min-w-0">
+                    {shouldShowStarterChecklist ? (
+                      <>
+                        <p className="text-sm font-semibold leading-tight text-emerald-700">{isFrench ? 'Pour commencer :' : 'To get started :'}</p>
+                        <p className="text-sm leading-snug text-emerald-700/90 font-medium mt-0.5">
+                          {isFrench
+                            ? '👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
+                            : '👉 Provide: mission title, domain, diaspora contributions'}
+                        </p>
+                      </>
+                    ) : (
                       <p className="text-sm font-semibold leading-tight text-emerald-700">
                         {isFrench ? '💡 Besoin d’aide ? Je peux corriger ta fiche mission ou en créer une pour toi.' : '💡 Need help? I can improve your mission form or create one for you.'}
                       </p>
-                    </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
               {isAssistantMenuOpen && (
                 <div className="mt-2 flex gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
@@ -833,14 +848,6 @@ export function FormulaireOpportunite({
       </div>
       )}
 
-      {assistantNotification && (
-        <div className="fixed bottom-5 right-5 z-50 pointer-events-none">
-          <div className="max-w-md bg-orange-50 border border-orange-200 border-l-4 border-l-orange-500 shadow-lg rounded-lg px-4 py-3 flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
-            <AlertCircle className="w-4 h-4 text-orange-600 flex-shrink-0" />
-            <span className="text-orange-700 text-sm font-medium">{assistantNotification}</span>
-          </div>
-        </div>
-      )}
     </form>
   );
 }

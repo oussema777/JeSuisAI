@@ -79,6 +79,94 @@ function cleanModelResponse(raw: string) {
   return cleaned.trim();
 }
 
+type ContributionTypeKey =
+  | 'investissement'
+  | 'epargne'
+  | 'competences'
+  | 'dons'
+  | 'reseauxInfluence'
+  | 'achatsTourisme';
+
+const contributionTypeAliases: Record<string, ContributionTypeKey> = {
+  investissement: 'investissement',
+  invest: 'investissement',
+  epargne: 'epargne',
+  epargnefinanciere: 'epargne',
+  competences: 'competences',
+  competence: 'competences',
+  skills: 'competences',
+  dons: 'dons',
+  don: 'dons',
+  reseauxinfluence: 'reseauxInfluence',
+  reseauinfluence: 'reseauxInfluence',
+  reseaux: 'reseauxInfluence',
+  achats: 'achatsTourisme',
+  achatstourisme: 'achatsTourisme',
+  tourisme: 'achatsTourisme',
+};
+
+function normalizeContributionToken(token: string) {
+  return token
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[^a-zA-Z]/g, '');
+}
+
+function parseSelectedContributionTypes(raw?: string): ContributionTypeKey[] {
+  if (!raw?.trim()) return [];
+
+  const unique = new Set<ContributionTypeKey>();
+  const parts = raw.split(',').map((p) => p.trim()).filter(Boolean);
+
+  for (const part of parts) {
+    const normalized = normalizeContributionToken(part);
+    const mapped = contributionTypeAliases[normalized];
+    if (mapped) unique.add(mapped);
+  }
+
+  return Array.from(unique);
+}
+
+function buildContributionsFromSelectedTypes(
+  selectedTypes: ContributionTypeKey[],
+  language: 'fr' | 'en' = 'fr'
+) {
+  if (selectedTypes.length === 0) return '';
+
+  const templates = language === 'en'
+    ? {
+        investissement: 'Mobilize diaspora investment to co-finance priority activities and strengthen project sustainability.',
+        epargne: 'Channel diaspora savings into structured contribution mechanisms aligned with mission milestones.',
+        competences: 'Engage diaspora experts to provide technical mentoring, training, and operational support.',
+        dons: 'Collect targeted donations (financial or in-kind) to address concrete mission needs.',
+        reseauxInfluence: 'Activate diaspora professional networks and influence channels to open strategic partnerships.',
+        achatsTourisme: 'Promote diaspora-driven purchases and mission-linked tourism to generate local economic impact.',
+      }
+    : {
+        investissement: 'Mobiliser l’investissement de la diaspora pour cofinancer les activités prioritaires et renforcer la pérennité de la mission.',
+        epargne: 'Canaliser l’épargne de la diaspora vers des mécanismes de contribution structurés et alignés sur les étapes de la mission.',
+        competences: 'Impliquer des expertises de la diaspora pour du mentorat technique, de la formation et un appui opérationnel.',
+        dons: 'Collecter des dons ciblés (financiers ou en nature) pour couvrir des besoins concrets de la mission.',
+        reseauxInfluence: 'Activer les réseaux et relais d’influence de la diaspora afin d’ouvrir des partenariats stratégiques.',
+        achatsTourisme: 'Encourager les achats et le tourisme de la diaspora liés à la mission pour générer un impact économique local.',
+      };
+
+  return selectedTypes.map((key) => `- ${templates[key]}`).join('\n');
+}
+
+function enforceContributionsBySelectedTypes(
+  generatedText: string,
+  selectedTypesRaw?: string,
+  language: 'fr' | 'en' = 'fr'
+) {
+  const selectedTypes = parseSelectedContributionTypes(selectedTypesRaw);
+  if (selectedTypes.length === 0) {
+    return generatedText;
+  }
+
+  return buildContributionsFromSelectedTypes(selectedTypes, language);
+}
+
 export interface DetailedScores {
   description_coherence: number;
   impact_coherence: number;
@@ -267,7 +355,10 @@ export async function optimizeMissionVersion(data: {
     optimized_title: truncateForField(parsed.optimized_title || '', 'title'),
     optimized_description: truncateForField(parsed.optimized_description || '', 'description'),
     optimized_impacts: truncateForField(parsed.optimized_impacts || '', 'impacts'),
-    optimized_contributions: truncateForField(parsed.optimized_contributions || '', 'contributions'),
+    optimized_contributions: truncateForField(
+      enforceContributionsBySelectedTypes(parsed.optimized_contributions || '', data.mission.contributionTypes, 'fr'),
+      'contributions'
+    ),
     optimized_conditions: truncateForField(parsed.optimized_conditions || '', 'conditions'),
     optimized_publicVise: normalizeEnum(parsed.optimized_publicVise, ['tous', 'diaspora']),
     optimized_timingAction: normalizeEnum(parsed.optimized_timingAction, ['permanente', 'ponctuelle', 'urgente']),
@@ -314,7 +405,14 @@ export async function chatWithMissionAssistant(data: {
       parsed.suggested_updates.optimized_impacts = truncateForField(parsed.suggested_updates.optimized_impacts, 'impacts');
     }
     if (parsed.suggested_updates.optimized_contributions) {
-      parsed.suggested_updates.optimized_contributions = truncateForField(parsed.suggested_updates.optimized_contributions, 'contributions');
+      parsed.suggested_updates.optimized_contributions = truncateForField(
+        enforceContributionsBySelectedTypes(
+          parsed.suggested_updates.optimized_contributions,
+          data.mission.contributionTypes,
+          data.language === 'en' ? 'en' : 'fr'
+        ),
+        'contributions'
+      );
     }
   }
 
@@ -329,7 +427,14 @@ export async function chatWithMissionAssistant(data: {
       parsed.perfected_draft.optimized_impacts = truncateForField(parsed.perfected_draft.optimized_impacts, 'impacts');
     }
     if (parsed.perfected_draft.optimized_contributions) {
-      parsed.perfected_draft.optimized_contributions = truncateForField(parsed.perfected_draft.optimized_contributions, 'contributions');
+      parsed.perfected_draft.optimized_contributions = truncateForField(
+        enforceContributionsBySelectedTypes(
+          parsed.perfected_draft.optimized_contributions,
+          data.mission.contributionTypes,
+          data.language === 'en' ? 'en' : 'fr'
+        ),
+        'contributions'
+      );
     }
   }
 
@@ -365,7 +470,13 @@ export async function chatSectionFocused(data: {
   return {
     assistant_message: parsed.assistant_message || '',
     suggested_value: truncateForField(
-      parsed.suggested_value || '',
+      data.section === 'contributions'
+        ? enforceContributionsBySelectedTypes(
+            parsed.suggested_value || '',
+            data.mission.contributionTypes,
+            data.language === 'en' ? 'en' : 'fr'
+          )
+        : (parsed.suggested_value || ''),
       data.section === 'title'
         ? 'title'
         : data.section === 'impacts'

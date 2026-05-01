@@ -151,7 +151,7 @@ Instructions :
   - optimized_remunerationPrevue : "benevole" | "remuneration" | "defraiement-local" | "defraiement-complet" | "autre" | ""
 - Répondre en français uniquement.
 
-Prise en compte des types de contribution : Si des types de contribution sont fournis, adaptez la section optimized_contributions pour prioriser les profils et tâches correspondant à ces types. Si nécessaire, transformez ces types en courtes propositions de profils (1 à 3 items) et privilégiez la concision pour respecter les limites de champs.
+Prise en compte des types de contribution (règle stricte) : Si des types de contribution sont fournis, la section optimized_contributions doit utiliser uniquement ces types et aucun autre. N'ajoutez pas de profil, de tâche ou de modalité hors de la liste sélectionnée. Si nécessaire, reformulez ces types en propositions courtes (1 à 3 items), mais sans élargir le périmètre.
 
 LIMITES DE LONGUEUR STRICTES (respecter scrupuleusement) :
 - optimized_title : MAX 100 caractères (~15 mots)
@@ -241,6 +241,7 @@ Objectif de réponse :
 11) Maintenir/mettre à jour perfected_draft à chaque tour (si info suffisante), sans inventer de faits.
 12) Poser au plus UNE follow_up_question précise pour faire avancer la mission.
 13) Vérifier et corriger l'orthographe, la grammaire et la clarté dans toutes les propositions.
+14) Si des types de contribution sont fournis, les champs optimized_contributions (dans suggested_updates/perfected_draft) doivent contenir uniquement ces types et exclure tout type non sélectionné.
 
 LIMITES DE CHAMPS (pour suggested_updates et perfected_draft) :
 - optimized_title : MAX 100 caractères (~15 mots)
