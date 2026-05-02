@@ -255,65 +255,6 @@ export interface PrePublishPolishedMission {
   remunerationAutre: string;
 }
 
-async function normalizePolishPayloadLanguage(
-  payload: PrePublishPolishedMission,
-  targetLanguage: 'fr' | 'en'
-): Promise<PrePublishPolishedMission> {
-  if (targetLanguage !== 'en') {
-    return payload;
-  }
-
-  const values = Object.values(payload).map((v) => String(v || '').trim());
-  if (!values.some(Boolean)) {
-    return payload;
-  }
-
-  const translationPrompt = `
-Translate all provided mission fields to English while preserving exact business meaning.
-
-Rules:
-- If a field is already English, keep it natural and unchanged in meaning.
-- Do not omit any detail.
-- Return only valid JSON.
-- Keep exactly the same keys.
-
-Input JSON:
-${JSON.stringify(payload)}
-
-Output JSON format:
-{
-  "intituleAction": "string",
-  "descriptionGenerale": "string",
-  "impactsObjectifs": "string",
-  "detailsContributions": "string",
-  "conditionsMission": "string",
-  "detailRemuneration": "string",
-  "facilitesAutres": "string",
-  "remunerationAutre": "string"
-}
-`;
-
-  try {
-    const translationResponse = await getGeminiClient().generate(translationPrompt, { temperature: 0.1 });
-    const cleanedTranslation = cleanModelResponse(translationResponse);
-    const parsed = JSON.parse(cleanedTranslation) as Partial<PrePublishPolishedMission>;
-
-    return {
-      intituleAction: parsed.intituleAction ?? payload.intituleAction,
-      descriptionGenerale: parsed.descriptionGenerale ?? payload.descriptionGenerale,
-      impactsObjectifs: parsed.impactsObjectifs ?? payload.impactsObjectifs,
-      detailsContributions: parsed.detailsContributions ?? payload.detailsContributions,
-      conditionsMission: parsed.conditionsMission ?? payload.conditionsMission,
-      detailRemuneration: parsed.detailRemuneration ?? payload.detailRemuneration,
-      facilitesAutres: parsed.facilitesAutres ?? payload.facilitesAutres,
-      remunerationAutre: parsed.remunerationAutre ?? payload.remunerationAutre,
-    };
-  } catch (error) {
-    console.warn('[polishMissionBeforePublish] English normalization failed, using original payload:', error);
-    return payload;
-  }
-}
-
 export async function analyzeMission(data: {
   domain: string;
   title: string;
@@ -589,18 +530,16 @@ export async function polishMissionBeforePublish(data: {
     remunerationAutre: data.remunerationAutre ?? '',
   };
 
-  const normalizedInputPayload = await normalizePolishPayloadLanguage(rawInputPayload, lang);
-
   const prompt = buildPrePublishPolishPrompt(
     {
-      title: normalizedInputPayload.intituleAction,
-      description: normalizedInputPayload.descriptionGenerale,
-      impactsObjectifs: normalizedInputPayload.impactsObjectifs,
-      detailsContributions: normalizedInputPayload.detailsContributions,
-      conditionsMission: normalizedInputPayload.conditionsMission,
-      detailRemuneration: normalizedInputPayload.detailRemuneration,
-      facilitesAutres: normalizedInputPayload.facilitesAutres,
-      remunerationAutre: normalizedInputPayload.remunerationAutre,
+      title: rawInputPayload.intituleAction,
+      description: rawInputPayload.descriptionGenerale,
+      impactsObjectifs: rawInputPayload.impactsObjectifs,
+      detailsContributions: rawInputPayload.detailsContributions,
+      conditionsMission: rawInputPayload.conditionsMission,
+      detailRemuneration: rawInputPayload.detailRemuneration,
+      facilitesAutres: rawInputPayload.facilitesAutres,
+      remunerationAutre: rawInputPayload.remunerationAutre,
     },
     lang
   );
@@ -616,27 +555,77 @@ export async function polishMissionBeforePublish(data: {
     console.log('[polishMissionBeforePublish] Parsed successfully:', Object.keys(parsed));
 
     const polishedPayload: PrePublishPolishedMission = {
-      intituleAction: parsed.intituleAction ?? normalizedInputPayload.intituleAction,
-      descriptionGenerale: parsed.descriptionGenerale ?? normalizedInputPayload.descriptionGenerale,
-      impactsObjectifs: parsed.impactsObjectifs ?? normalizedInputPayload.impactsObjectifs,
-      detailsContributions: parsed.detailsContributions ?? normalizedInputPayload.detailsContributions,
-      conditionsMission: parsed.conditionsMission ?? normalizedInputPayload.conditionsMission,
-      detailRemuneration: parsed.detailRemuneration ?? normalizedInputPayload.detailRemuneration,
-      facilitesAutres: parsed.facilitesAutres ?? normalizedInputPayload.facilitesAutres,
-      remunerationAutre: parsed.remunerationAutre ?? normalizedInputPayload.remunerationAutre,
+      intituleAction: parsed.intituleAction ?? rawInputPayload.intituleAction,
+      descriptionGenerale: parsed.descriptionGenerale ?? rawInputPayload.descriptionGenerale,
+      impactsObjectifs: parsed.impactsObjectifs ?? rawInputPayload.impactsObjectifs,
+      detailsContributions: parsed.detailsContributions ?? rawInputPayload.detailsContributions,
+      conditionsMission: parsed.conditionsMission ?? rawInputPayload.conditionsMission,
+      detailRemuneration: parsed.detailRemuneration ?? rawInputPayload.detailRemuneration,
+      facilitesAutres: parsed.facilitesAutres ?? rawInputPayload.facilitesAutres,
+      remunerationAutre: parsed.remunerationAutre ?? rawInputPayload.remunerationAutre,
     };
 
-    const normalizedOutputPayload = await normalizePolishPayloadLanguage(polishedPayload, lang);
+    if (lang === 'en') {
+      const englishResiduePattern = /\b(le|la|les|des|du|de|un|une|et|pour|avec|dans|sur|par|aux|au|mission|contribution|profils?)\b/i;
+      const residueKeys = (Object.entries(polishedPayload) as Array<[keyof PrePublishPolishedMission, string]>)
+        .filter(([, value]) => englishResiduePattern.test(String(value || '')))
+        .map(([key]) => key);
+
+      if (residueKeys.length > 0) {
+        console.warn('[polishMissionBeforePublish] English residue detected, forcing second translation pass for keys:', residueKeys);
+        const forceEnglishPrompt = `
+Translate the following JSON values into natural English.
+
+Rules:
+- Every returned string must be in English only.
+- Do not keep any French words or phrases.
+- Preserve the business meaning exactly.
+- Return only valid JSON with the same keys.
+
+Input JSON:
+${JSON.stringify(polishedPayload)}
+
+Output JSON:
+{
+  "intituleAction": "string",
+  "descriptionGenerale": "string",
+  "impactsObjectifs": "string",
+  "detailsContributions": "string",
+  "conditionsMission": "string",
+  "detailRemuneration": "string",
+  "facilitesAutres": "string",
+  "remunerationAutre": "string"
+}
+`;
+
+        try {
+          const forceEnglishResponse = await getGeminiClient().generate(forceEnglishPrompt, { temperature: 0.0 });
+          const forceEnglishCleaned = cleanModelResponse(forceEnglishResponse);
+          const forceEnglishParsed = JSON.parse(forceEnglishCleaned) as Partial<PrePublishPolishedMission>;
+
+          polishedPayload.intituleAction = forceEnglishParsed.intituleAction ?? polishedPayload.intituleAction;
+          polishedPayload.descriptionGenerale = forceEnglishParsed.descriptionGenerale ?? polishedPayload.descriptionGenerale;
+          polishedPayload.impactsObjectifs = forceEnglishParsed.impactsObjectifs ?? polishedPayload.impactsObjectifs;
+          polishedPayload.detailsContributions = forceEnglishParsed.detailsContributions ?? polishedPayload.detailsContributions;
+          polishedPayload.conditionsMission = forceEnglishParsed.conditionsMission ?? polishedPayload.conditionsMission;
+          polishedPayload.detailRemuneration = forceEnglishParsed.detailRemuneration ?? polishedPayload.detailRemuneration;
+          polishedPayload.facilitesAutres = forceEnglishParsed.facilitesAutres ?? polishedPayload.facilitesAutres;
+          polishedPayload.remunerationAutre = forceEnglishParsed.remunerationAutre ?? polishedPayload.remunerationAutre;
+        } catch (forceEnglishError) {
+          console.warn('[polishMissionBeforePublish] English forcing pass failed:', forceEnglishError);
+        }
+      }
+    }
 
     return {
-      intituleAction: truncateForField(normalizedOutputPayload.intituleAction, 'title'),
-      descriptionGenerale: truncateForField(normalizedOutputPayload.descriptionGenerale, 'description'),
-      impactsObjectifs: truncateForField(normalizedOutputPayload.impactsObjectifs, 'impacts'),
-      detailsContributions: truncateForField(normalizedOutputPayload.detailsContributions, 'contributions'),
-      conditionsMission: truncateForField(normalizedOutputPayload.conditionsMission, 'conditions'),
-      detailRemuneration: truncateForField(normalizedOutputPayload.detailRemuneration, 'impacts'),
-      facilitesAutres: normalizedOutputPayload.facilitesAutres,
-      remunerationAutre: normalizedOutputPayload.remunerationAutre,
+      intituleAction: truncateForField(polishedPayload.intituleAction, 'title'),
+      descriptionGenerale: truncateForField(polishedPayload.descriptionGenerale, 'description'),
+      impactsObjectifs: truncateForField(polishedPayload.impactsObjectifs, 'impacts'),
+      detailsContributions: truncateForField(polishedPayload.detailsContributions, 'contributions'),
+      conditionsMission: truncateForField(polishedPayload.conditionsMission, 'conditions'),
+      detailRemuneration: truncateForField(polishedPayload.detailRemuneration, 'impacts'),
+      facilitesAutres: polishedPayload.facilitesAutres,
+      remunerationAutre: polishedPayload.remunerationAutre,
     } as PrePublishPolishedMission;
   } catch (error) {
     console.error('[polishMissionBeforePublish] Error:', error);
