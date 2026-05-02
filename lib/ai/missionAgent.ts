@@ -518,20 +518,117 @@ export async function polishMissionBeforePublish(data: {
   language?: 'fr' | 'en';
 }) {
   const lang = data.language === 'en' ? 'en' : 'fr';
-  const prompt = buildPrePublishPolishPrompt(data, lang);
-  const response = await getGeminiClient().generate(prompt, { temperature: 0.2 });
 
-  const cleanedResponse = cleanModelResponse(response);
-  const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
+  const rawInputPayload: PrePublishPolishedMission = {
+    intituleAction: data.title ?? '',
+    descriptionGenerale: data.description ?? '',
+    impactsObjectifs: data.impactsObjectifs ?? '',
+    detailsContributions: data.detailsContributions ?? '',
+    conditionsMission: data.conditionsMission ?? '',
+    detailRemuneration: data.detailRemuneration ?? '',
+    facilitesAutres: data.facilitesAutres ?? '',
+    remunerationAutre: data.remunerationAutre ?? '',
+  };
 
-  return {
-    intituleAction: truncateForField(parsed.intituleAction ?? data.title ?? '', 'title'),
-    descriptionGenerale: truncateForField(parsed.descriptionGenerale ?? data.description ?? '', 'description'),
-    impactsObjectifs: truncateForField(parsed.impactsObjectifs ?? data.impactsObjectifs ?? '', 'impacts'),
-    detailsContributions: truncateForField(parsed.detailsContributions ?? data.detailsContributions ?? '', 'contributions'),
-    conditionsMission: truncateForField(parsed.conditionsMission ?? data.conditionsMission ?? '', 'conditions'),
-    detailRemuneration: truncateForField(parsed.detailRemuneration ?? data.detailRemuneration ?? '', 'impacts'),
-    facilitesAutres: parsed.facilitesAutres ?? data.facilitesAutres ?? '',
-    remunerationAutre: parsed.remunerationAutre ?? data.remunerationAutre ?? '',
-  } as PrePublishPolishedMission;
+  const prompt = buildPrePublishPolishPrompt(
+    {
+      title: rawInputPayload.intituleAction,
+      description: rawInputPayload.descriptionGenerale,
+      impactsObjectifs: rawInputPayload.impactsObjectifs,
+      detailsContributions: rawInputPayload.detailsContributions,
+      conditionsMission: rawInputPayload.conditionsMission,
+      detailRemuneration: rawInputPayload.detailRemuneration,
+      facilitesAutres: rawInputPayload.facilitesAutres,
+      remunerationAutre: rawInputPayload.remunerationAutre,
+    },
+    lang
+  );
+  
+  try {
+    const response = await getGeminiClient().generate(prompt, { temperature: 0.2 });
+    console.log('[polishMissionBeforePublish] Raw response:', response.substring(0, 200));
+
+    const cleanedResponse = cleanModelResponse(response);
+    console.log('[polishMissionBeforePublish] Cleaned response:', cleanedResponse.substring(0, 200));
+    
+    const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
+    console.log('[polishMissionBeforePublish] Parsed successfully:', Object.keys(parsed));
+
+    const polishedPayload: PrePublishPolishedMission = {
+      intituleAction: parsed.intituleAction ?? rawInputPayload.intituleAction,
+      descriptionGenerale: parsed.descriptionGenerale ?? rawInputPayload.descriptionGenerale,
+      impactsObjectifs: parsed.impactsObjectifs ?? rawInputPayload.impactsObjectifs,
+      detailsContributions: parsed.detailsContributions ?? rawInputPayload.detailsContributions,
+      conditionsMission: parsed.conditionsMission ?? rawInputPayload.conditionsMission,
+      detailRemuneration: parsed.detailRemuneration ?? rawInputPayload.detailRemuneration,
+      facilitesAutres: parsed.facilitesAutres ?? rawInputPayload.facilitesAutres,
+      remunerationAutre: parsed.remunerationAutre ?? rawInputPayload.remunerationAutre,
+    };
+
+    if (lang === 'en') {
+      const englishResiduePattern = /\b(le|la|les|des|du|de|un|une|et|pour|avec|dans|sur|par|aux|au|mission|contribution|profils?)\b/i;
+      const residueKeys = (Object.entries(polishedPayload) as Array<[keyof PrePublishPolishedMission, string]>)
+        .filter(([, value]) => englishResiduePattern.test(String(value || '')))
+        .map(([key]) => key);
+
+      if (residueKeys.length > 0) {
+        console.warn('[polishMissionBeforePublish] English residue detected, forcing second translation pass for keys:', residueKeys);
+        const forceEnglishPrompt = `
+Translate the following JSON values into natural English.
+
+Rules:
+- Every returned string must be in English only.
+- Do not keep any French words or phrases.
+- Preserve the business meaning exactly.
+- Return only valid JSON with the same keys.
+
+Input JSON:
+${JSON.stringify(polishedPayload)}
+
+Output JSON:
+{
+  "intituleAction": "string",
+  "descriptionGenerale": "string",
+  "impactsObjectifs": "string",
+  "detailsContributions": "string",
+  "conditionsMission": "string",
+  "detailRemuneration": "string",
+  "facilitesAutres": "string",
+  "remunerationAutre": "string"
+}
+`;
+
+        try {
+          const forceEnglishResponse = await getGeminiClient().generate(forceEnglishPrompt, { temperature: 0.0 });
+          const forceEnglishCleaned = cleanModelResponse(forceEnglishResponse);
+          const forceEnglishParsed = JSON.parse(forceEnglishCleaned) as Partial<PrePublishPolishedMission>;
+
+          polishedPayload.intituleAction = forceEnglishParsed.intituleAction ?? polishedPayload.intituleAction;
+          polishedPayload.descriptionGenerale = forceEnglishParsed.descriptionGenerale ?? polishedPayload.descriptionGenerale;
+          polishedPayload.impactsObjectifs = forceEnglishParsed.impactsObjectifs ?? polishedPayload.impactsObjectifs;
+          polishedPayload.detailsContributions = forceEnglishParsed.detailsContributions ?? polishedPayload.detailsContributions;
+          polishedPayload.conditionsMission = forceEnglishParsed.conditionsMission ?? polishedPayload.conditionsMission;
+          polishedPayload.detailRemuneration = forceEnglishParsed.detailRemuneration ?? polishedPayload.detailRemuneration;
+          polishedPayload.facilitesAutres = forceEnglishParsed.facilitesAutres ?? polishedPayload.facilitesAutres;
+          polishedPayload.remunerationAutre = forceEnglishParsed.remunerationAutre ?? polishedPayload.remunerationAutre;
+        } catch (forceEnglishError) {
+          console.warn('[polishMissionBeforePublish] English forcing pass failed:', forceEnglishError);
+        }
+      }
+    }
+
+    return {
+      intituleAction: truncateForField(polishedPayload.intituleAction, 'title'),
+      descriptionGenerale: truncateForField(polishedPayload.descriptionGenerale, 'description'),
+      impactsObjectifs: truncateForField(polishedPayload.impactsObjectifs, 'impacts'),
+      detailsContributions: truncateForField(polishedPayload.detailsContributions, 'contributions'),
+      conditionsMission: truncateForField(polishedPayload.conditionsMission, 'conditions'),
+      detailRemuneration: truncateForField(polishedPayload.detailRemuneration, 'impacts'),
+      facilitesAutres: polishedPayload.facilitesAutres,
+      remunerationAutre: polishedPayload.remunerationAutre,
+    } as PrePublishPolishedMission;
+  } catch (error) {
+    console.error('[polishMissionBeforePublish] Error:', error);
+    throw error;
+  }
 }

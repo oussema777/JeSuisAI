@@ -1,6 +1,69 @@
 export function buildAnalyzePrompt(data: any, language: 'fr' | 'en' = 'fr') {
-  const langInstruction = language === 'en' ? 'All responses must be in English.' : "Toutes les réponses doivent être en français.";
-  const noExplain = language === 'en' ? 'No explanations outside the JSON.' : "Pas d'explications hors JSON.";
+  if (language === 'en') {
+    return `
+You are a strategic mission evaluator for the diaspora.
+
+Analyze the following proposal:
+
+Domain: ${data.domain}
+Title: ${data.title}
+
+General Description:
+${data.description ?? "Not provided"}
+
+Impacts / Objectives:
+${data.impactsObjectifs ?? "Not provided"}
+
+Evaluation criteria:
+
+1. Internal and external coherence for each section:
+- description_coherence: internal logic and clarity of the text (5-6 lines ideal)
+- impact_coherence: objectives logically follow from the description
+- contribution_coherence: required profiles genuinely match the actual needs
+
+2. feasibility_realism:
+Is the mission realistic?
+Is the scope proportionate?
+Is the implicit timeline credible?
+Avoid giving a high score to unrealistic or overly ambitious missions.
+
+3. diaspora_alignment:
+Does the mission genuinely involve the diaspora?
+
+Analyze cross-coherence:
+- description → impacts: does the description naturally lead to the stated impacts?
+
+Vague, unrealistic, or excessively ambitious missions must receive a low feasibility_realism score.
+
+Evaluate each section separately.
+
+Return ONLY valid JSON in this format:
+
+{
+  "scores": {
+    "description_coherence": number (0-10),
+    "impact_coherence": number (0-10),
+    "contribution_coherence": number (0-10),
+    "feasibility_realism": number (0-10),
+    "diaspora_alignment": number (0-10)
+  },
+  "strengths": string[],
+  "weaknesses": string[],
+  "recommendations": string[],
+  "field_flags": {
+    "title": string | null,
+    "description": string | null,
+    "impacts": string | null,
+    "contributions": string | null
+  }
+}
+All responses must be in English.
+No explanations outside the JSON.
+`;
+  }
+
+  const langInstruction = "Toutes les réponses doivent être en français.";
+  const noExplain = "Pas d'explications hors JSON.";
   return `
 Vous êtes un évaluateur stratégique de missions pour la diaspora.
 
@@ -95,8 +158,99 @@ export function buildOptimizeMissionPrompt(data: {
     };
   };
 }, language: 'fr' | 'en' = 'fr') {
-  const langInstruction = language === 'en' ? 'Please respond in English only.' : 'Répondre en français uniquement.';
-  const noExplain = language === 'en' ? 'No explanations outside JSON.' : "Pas d'explications hors JSON.";
+  if (language === 'en') {
+    return `
+You are an expert in improving diaspora missions.
+
+Objective: propose an optimized version of the mission based on the current input and detailed AI analysis.
+
+Current input:
+- Domain: ${data.mission.domain ?? "Not provided"}
+- Title: ${data.mission.title ?? "Not provided"}
+
+General Description:
+${data.mission.description ?? "Not provided"}
+
+Impacts / Objectives:
+${data.mission.impactsObjectifs ?? "Not provided"}
+
+Profiles / Contributions:
+${data.mission.detailsContributions ?? "Not provided"}
+
+Selected contribution types: ${data.mission.contributionTypes ?? "Not provided"}
+
+Mission conditions:
+${data.mission.conditionsMission ?? "Not provided"}
+
+Current selections:
+- Target audience: ${data.mission.publicVise ?? "Not provided"}
+- Action timing: ${data.mission.timingAction ?? "Not provided"}
+- Urgent mission: ${data.mission.missionUrgente ?? "Not provided"}
+- Remote action: ${data.mission.actionDistance ?? "Not provided"}
+- Planned compensation: ${data.mission.remunerationPrevue ?? "Not provided"}
+
+Detailed AI analysis (use fully):
+- Detailed scores: ${JSON.stringify(data.analysis.scores ?? {})}
+- Strengths: ${JSON.stringify(data.analysis.strengths ?? [])}
+- Weaknesses: ${JSON.stringify(data.analysis.weaknesses ?? [])}
+- Recommendations: ${JSON.stringify(data.analysis.recommendations ?? [])}
+- Field alerts: ${JSON.stringify(data.analysis.field_flags ?? {})}
+
+User discussion context (optional):
+- Summary: ${data.chat_context?.summary ?? "None"}
+- Chat draft improvements: ${JSON.stringify(data.chat_context?.draft_updates ?? {})}
+- Recent history: ${JSON.stringify(data.chat_context?.messages ?? [])}
+
+Instructions:
+- Keep the same business meaning and domain.
+- Write a clearer, more compelling, and more concrete version.
+- Remain realistic, actionable, and diaspora-oriented.
+- Avoid unnecessary jargon and overly long sentences.
+- Also suggest coherent selectable values for radio/select fields.
+- Use ONLY these values for selections:
+  - optimized_publicVise: "tous" | "diaspora" | ""
+  - optimized_timingAction: "permanente" | "ponctuelle" | "urgente" | ""
+  - optimized_missionUrgente: "oui" | "non" | ""
+  - optimized_actionDistance: "oui" | "non" | "partiellement" | ""
+  - optimized_remunerationPrevue: "benevole" | "remuneration" | "defraiement-local" | "defraiement-complet" | "autre" | ""
+- Respond in English only.
+
+Contribution types rule (strict): If contribution types are provided, the optimized_contributions section must use only those types and no others. Do not add profiles, tasks, or modalities outside the selected list. If needed, rephrase those types into short proposals (1 to 3 items), but do not expand the scope.
+
+STRICT LENGTH LIMITS (respect carefully):
+- optimized_title: MAX 100 characters (~15 words)
+- optimized_description: MAX 2000 characters (~300 words)
+- optimized_impacts: MAX 500 characters (~75 words)
+- optimized_contributions: MAX 500 characters (~75 words)
+- optimized_conditions: MAX 500 characters (~75 words)
+
+IMPORTANT: If a field risks exceeding its limit, shorten it intelligently by:
+- Eliminating redundancies and hollow phrases
+- Getting straight to the point
+- Using bullet points for contributions or conditions
+- Favoring clarity over completeness
+
+Return ONLY valid JSON in this format:
+{
+  "optimized_title": "string",
+  "optimized_description": "string",
+  "optimized_impacts": "string",
+  "optimized_contributions": "string",
+  "optimized_conditions": "string",
+  "optimized_publicVise": "string",
+  "optimized_timingAction": "string",
+  "optimized_missionUrgente": "string",
+  "optimized_actionDistance": "string",
+  "optimized_remunerationPrevue": "string"
+}
+
+Please respond in English only.
+No explanations outside JSON.
+`;
+  }
+  
+  const langInstruction = 'Répondre en français uniquement.';
+  const noExplain = "Pas d'explications hors JSON.";
   return `
 Vous êtes un expert en amélioration de missions pour la diaspora.
 
@@ -207,8 +361,81 @@ export function buildFormAssistantChatPrompt(data: {
   userMessage: string;
   language?: "fr" | "en";
 }) {
-  const langInstructionFinal = data.language === 'en' ? 'Please answer in English.' : 'Répondre en français.';
-  const noExplain = data.language === 'en' ? 'No explanations outside the JSON.' : "Pas d'explications hors JSON.";
+  if (data.language === 'en') {
+    return `
+You are a context architect helping improve a diaspora mission.
+
+Mission context:
+- Domain: ${data.mission.domain ?? "Not provided"}
+- Title: ${data.mission.title ?? "Not provided"}
+- Description: ${data.mission.description ?? "Not provided"}
+- Impacts / Objectives: ${data.mission.impactsObjectifs ?? "Not provided"}
+- Contributions: ${data.mission.detailsContributions ?? "Not provided"}
+- Contribution types: ${data.mission.contributionTypes ?? "Not provided"}
+
+AI analysis signals:
+- Strengths: ${JSON.stringify(data.analysis?.strengths ?? [])}
+- Weaknesses: ${JSON.stringify(data.analysis?.weaknesses ?? [])}
+- Recommendations: ${JSON.stringify(data.analysis?.recommendations ?? [])}
+- Field alerts: ${JSON.stringify(data.analysis?.field_flags ?? {})}
+- Potentially missing context fields: ${JSON.stringify(data.missing_context_fields ?? [])}
+
+Recent history: ${JSON.stringify(data.conversation.slice(-8))}
+Current user message: ${data.userMessage}
+Expected language: English
+
+Response objective:
+1) Respond conversationally and naturally, like a real chatbot reacting first to the user's message.
+2) Use English throughout.
+3) Maintain a professional, fluid, and collaborative style, without a robotic tone.
+4) Start with an explicit link to what the user wrote (pick up a concrete element from the message or form).
+5) Avoid generic openers like "Very good base", "Great base", or "Excellent point" unless they are genuinely contextualized.
+6) NEVER display a numerical score in assistant_message.
+7) Turn detected problems into actionable consultation_points (max 3), but do not overwhelm the user on the first message.
+8) If the user message is an initial analysis request, explicitly propose:
+   "I've identified X areas to strengthen. Which one should we tackle first?"
+9) Suggest quick_replies relevant to the current message.
+10) Update status_chips with states 'pending', 'resolved', or 'clear'.
+11) Maintain/update perfected_draft each turn (if enough information), without inventing facts.
+12) Ask at most ONE precise follow_up_question to move the mission forward.
+13) Check and correct spelling, grammar, and clarity in all proposals.
+14) If contribution types are provided, optimized_contributions (in suggested_updates/perfected_draft) must contain only those types and exclude any unselected type.
+
+FIELD LIMITS (for suggested_updates and perfected_draft):
+- optimized_title: MAX 100 characters (~15 words)
+- optimized_description: MAX 2000 characters (~300 words)
+- optimized_impacts: MAX 500 characters (~75 words)
+- optimized_contributions: MAX 500 characters (~75 words)
+Only propose modifications that strictly fit within these limits.
+
+Return ONLY valid JSON in this format:
+{
+  "assistant_message": "string",
+  "follow_up_question": "string",
+  "consultation_points": ["string"],
+  "quick_replies": ["string"],
+  "status_chips": [
+    { "label": "Context", "state": "pending | resolved | clear" }
+  ],
+  "suggested_updates": {
+    "optimized_title": "string | optional",
+    "optimized_description": "string | optional",
+    "optimized_impacts": "string | optional",
+    "optimized_contributions": "string | optional"
+  },
+  "perfected_draft": {
+    "optimized_title": "string | optional",
+    "optimized_description": "string | optional",
+    "optimized_impacts": "string | optional",
+    "optimized_contributions": "string | optional"
+  }
+}
+
+Please answer in English.
+No explanations outside the JSON.
+`;
+  }
+
   return `
 Vous êtes un architecte de contexte pour améliorer une mission destinée à la diaspora.
 
@@ -229,11 +456,11 @@ Signaux d'analyse IA :
 
 Historique récent : ${JSON.stringify(data.conversation.slice(-8))}
 Message utilisateur courant : ${data.userMessage}
-Langue attendue : ${data.language === 'en' ? 'anglais' : 'français'}
+Langue attendue : français
 
 Objectif de réponse :
 1) Répondre de façon conversationnelle et naturelle, comme un vrai chatbot qui réagit d'abord au message utilisateur.
-2) Utiliser la langue attendue (français si "fr", anglais si "en").
+2) Utiliser le français.
 3) Maintenir un style professionnel, fluide et collaboratif, sans ton robotique.
 4) Commencer par un lien explicite avec ce que l'utilisateur a écrit (reprendre un élément concret du message ou du formulaire).
 5) Éviter les formules génériques comme "Très bonne base", "Belle base", "Excellent point" si elles ne sont pas contextualisées.
@@ -278,8 +505,8 @@ Retournez UNIQUEMENT du JSON valide au format :
   }
 }
 
-\n${langInstructionFinal}
-${noExplain}
+Répondre en français.
+Pas d'explications hors JSON.
 `;
 }
 
@@ -299,7 +526,50 @@ export function buildDocumentToMissionPrompt(data: {
     remunerationPrevue?: string;
   };
 }, language: 'fr' | 'en' = 'fr') {
-  const langInstruction = language === 'en' ? 'Please produce the output in English.' : 'Tous les champs textuels doivent être en français.';
+  if (language === 'en') {
+    return `
+You are an expert assistant for formulating diaspora missions.
+
+Your task: from the document context below, propose a relevant pre-fill of the form fields.
+
+Extracted document context:
+${data.documentContext || 'No usable context'}
+
+Current form values (if already filled):
+${JSON.stringify(data.currentMission ?? {})}
+
+Important instructions:
+- You may reason and rephrase to improve clarity and structure.
+- Do not invent specific facts not supported by the context.
+- If information is completely missing, return an empty string.
+- Strictly normalize:
+  - publicVise: "tous" | "diaspora" | ""
+  - missionUrgente: "oui" | "non" | ""
+  - actionDistance: "oui" | "non" | "partiellement" | ""
+  - timingAction: "permanente" | "ponctuelle" | "urgente" | ""
+  - remunerationPrevue: "benevole" | "remuneration" | "defraiement-local" | "defraiement-complet" | "autre" | ""
+- All text fields must be in natural, useful English.
+
+Return ONLY valid JSON in this format:
+{
+  "intituleAction": "string",
+  "domaineAction": "string",
+  "descriptionGenerale": "string",
+  "impactsObjectifs": "string",
+  "detailsContributions": "string",
+  "conditionsMission": "string",
+  "publicVise": "string",
+  "missionUrgente": "string",
+  "actionDistance": "string",
+  "timingAction": "string",
+  "remunerationPrevue": "string"
+}
+
+Please produce the output in English.
+No explanations outside JSON.
+`;
+  }
+
   return `
 Vous êtes un assistant expert de formulation de missions diaspora.
 
@@ -338,12 +608,12 @@ Retournez UNIQUEMENT du JSON valide au format :
   "remunerationPrevue": "string"
 }
 
-\n${langInstruction}
-\nPas d'explications hors JSON.
+Tous les champs textuels doivent être en français.
+Pas d'explications hors JSON.
 `;
 }
 
-export function buildPrePublishPolishPrompt(data: {
+function buildPrePublishPolishPromptFrench(data: {
   title?: string;
   description?: string;
   impactsObjectifs?: string;
@@ -352,9 +622,7 @@ export function buildPrePublishPolishPrompt(data: {
   detailRemuneration?: string;
   facilitesAutres?: string;
   remunerationAutre?: string;
-}, language: 'fr' | 'en' = 'fr') {
-  const langInstruction = language === 'en' ? 'Please answer in English.' : '';
-  const noExplain = language === 'en' ? 'No explanations outside JSON.' : 'Pas d\'explications hors JSON.';
+}) {
   return `
 Vous êtes un relecteur éditorial avant publication de mission.
 
@@ -395,9 +663,82 @@ Retournez UNIQUEMENT du JSON valide avec exactement ce format :
   "remunerationAutre": "string"
 }
 
-${langInstruction}
-${noExplain}
+Pas d'explications hors JSON.
 `;
+}
+
+function buildPrePublishPolishPromptEnglish(data: {
+  title?: string;
+  description?: string;
+  impactsObjectifs?: string;
+  detailsContributions?: string;
+  conditionsMission?: string;
+  detailRemuneration?: string;
+  facilitesAutres?: string;
+  remunerationAutre?: string;
+}) {
+  return `
+You are a strict French-to-English mission translator before publication.
+
+Objective: translate every provided text field into natural English and correct spelling, grammar, punctuation, and layout without changing the business meaning.
+
+Strict rules:
+- Keep the facts and intent.
+- Do not invent information.
+- If the source text is in French or mixed French/English, translate it fully into natural English.
+- Every returned non-empty text field must be in English only.
+- Never return French wording, even partially.
+- Improve readability (clear sentences, correct punctuation, clean line breaks).
+- Keep a professional tone.
+- If a field is empty, leave it empty.
+
+Additional instructions (important):
+- ONLY make minor spelling, grammar, and punctuation corrections AFTER translation into English.
+- Translate any non-English source wording into English instead of preserving the original language.
+- DO NOT keep French expressions.
+- DO NOT rephrase sentences unless needed to produce correct English.
+- Avoid adding new business facts.
+- If a correction would replace more than 3 consecutive words or modify more than 15% of the words in a field, do not apply it — return the original meaning, but still in English.
+
+Fields to correct:
+- intituleAction: ${data.title ?? ''}
+- descriptionGenerale: ${data.description ?? ''}
+- impactsObjectifs: ${data.impactsObjectifs ?? ''}
+- detailsContributions: ${data.detailsContributions ?? ''}
+- conditionsMission: ${data.conditionsMission ?? ''}
+- detailRemuneration: ${data.detailRemuneration ?? ''}
+- facilitesAutres: ${data.facilitesAutres ?? ''}
+- remunerationAutre: ${data.remunerationAutre ?? ''}
+
+Return ONLY valid JSON with exactly this format:
+{
+  "intituleAction": "string",
+  "descriptionGenerale": "string",
+  "impactsObjectifs": "string",
+  "detailsContributions": "string",
+  "conditionsMission": "string",
+  "detailRemuneration": "string",
+  "facilitesAutres": "string",
+  "remunerationAutre": "string"
+}
+
+No explanations outside JSON.
+`;
+}
+
+export function buildPrePublishPolishPrompt(data: {
+  title?: string;
+  description?: string;
+  impactsObjectifs?: string;
+  detailsContributions?: string;
+  conditionsMission?: string;
+  detailRemuneration?: string;
+  facilitesAutres?: string;
+  remunerationAutre?: string;
+}, language: 'fr' | 'en' = 'fr') {
+  return language === 'en'
+    ? buildPrePublishPolishPromptEnglish(data)
+    : buildPrePublishPolishPromptFrench(data);
 }
 
 /**

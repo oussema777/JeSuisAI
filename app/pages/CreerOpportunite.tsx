@@ -313,24 +313,34 @@ export default function CreerOpportunite() {
     setIsPrePublishReviewLoading(true);
 
     try {
+      console.group('🔍 [SPELLCHECK] Starting Pre-Publish Review');
+      
+      const requestPayload = {
+        title: sourceFormData.intituleAction,
+        description: sourceFormData.descriptionGenerale,
+        impactsObjectifs: sourceFormData.impactsObjectifs,
+        detailsContributions: sourceFormData.detailsContributions,
+        conditionsMission: sourceFormData.conditionsMission,
+        detailRemuneration: sourceFormData.detailRemuneration,
+        facilitesAutres: sourceFormData.facilitesAutres,
+        remunerationAutre: sourceFormData.remunerationAutre,
+        language: isFrench ? 'fr' : 'en',
+      };
+      
+      console.log('📤 [SPELLCHECK] Sending to API:', requestPayload);
+
       const polishResponse = await fetch('/api/ai/polish-before-publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: sourceFormData.intituleAction,
-          description: sourceFormData.descriptionGenerale,
-          impactsObjectifs: sourceFormData.impactsObjectifs,
-          detailsContributions: sourceFormData.detailsContributions,
-          conditionsMission: sourceFormData.conditionsMission,
-          detailRemuneration: sourceFormData.detailRemuneration,
-          facilitesAutres: sourceFormData.facilitesAutres,
-          remunerationAutre: sourceFormData.remunerationAutre,
-          language: isFrench ? 'fr' : 'en',
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       const polishedData = (await polishResponse.json()) as PrePublishPolishedMission & { error?: string; details?: string };
+      
+      console.log('📥 [SPELLCHECK] API Response:', polishedData);
+      
       if (!polishResponse.ok) {
+        console.error('❌ [SPELLCHECK] API Error:', polishedData);
         throw new Error(polishedData?.details || polishedData?.error || 'Pré-correction IA impossible avant publication.');
       }
 
@@ -344,26 +354,11 @@ export default function CreerOpportunite() {
         facilitesAutres: polishedData.facilitesAutres ?? sourceFormData.facilitesAutres,
         remunerationAutre: polishedData.remunerationAutre ?? sourceFormData.remunerationAutre,
       };
+      
+      console.log('✅ [SPELLCHECK] Corrected Data (from AI):', correctedData);
 
-      // Apply only minimal, word-level corrections automatically (silent flow)
-      function shouldAcceptCorrection(original = '', corrected = '') {
-        const o = String(original || '').trim();
-        const c = String(corrected || '').trim();
-        if (!c || o === c) return false;
-        const oWords = o.split(/\s+/).filter(Boolean);
-        const cWords = c.split(/\s+/).filter(Boolean);
-        const total = Math.max(oWords.length, cWords.length, 1);
-        let diff = 0;
-        const minLen = Math.min(oWords.length, cWords.length);
-        for (let i = 0; i < minLen; i++) {
-          if (oWords[i] !== cWords[i]) diff++;
-        }
-        diff += Math.abs(oWords.length - cWords.length);
-        const ratio = diff / total;
-        return diff <= 3 || ratio <= 0.15;
-      }
-
-      function applyMinimalCorrectionsToForm(orig: FormDataOpportunite, corrected: PrePublishPolishedMission) {
+      function applyCorrectionsToForm(orig: FormDataOpportunite, corrected: PrePublishPolishedMission) {
+        console.group('🔄 [SPELLCHECK] Applying AI Corrections to Form:');
         const result = { ...orig } as FormDataOpportunite;
         const fields: Array<[keyof PrePublishPolishedMission, keyof FormDataOpportunite]> = [
           ['intituleAction', 'intituleAction'],
@@ -380,15 +375,31 @@ export default function CreerOpportunite() {
         for (const [cKey, fKey] of fields) {
           const originalVal = String((orig as any)[fKey] ?? '');
           const correctedVal = String((corrected as any)[cKey] ?? '');
-          if (shouldAcceptCorrection(originalVal, correctedVal)) {
-            (result as any)[fKey] = correctedVal;
-            appliedAny = true;
+          
+          if (originalVal === correctedVal) {
+            console.log(`✏️  [${fKey}] No changes (identical)`);
+            continue;
           }
+          
+          (result as any)[fKey] = correctedVal;
+          appliedAny = true;
+          console.log(`✅ [${fKey}] Updated:\n   From: "${originalVal.substring(0, 80)}${originalVal.length > 80 ? '...' : ''}"\n   To:   "${correctedVal.substring(0, 80)}${correctedVal.length > 80 ? '...' : ''}"`);
         }
+        console.groupEnd();
+        
         return { result, appliedAny } as any;
       }
 
-      const { result: autoAppliedForm, appliedAny } = applyMinimalCorrectionsToForm(sourceFormData, correctedData);
+      const { result: autoAppliedForm, appliedAny } = applyCorrectionsToForm(sourceFormData, correctedData);
+
+      if (appliedAny) {
+        console.log('📊 [SPELLCHECK] Corrections Applied:', {
+          original: sourceFormData,
+          corrected: autoAppliedForm,
+        });
+      } else {
+        console.log('✨ [SPELLCHECK] No corrections needed - text is clean!');
+      }
 
       // Update form in-place and prepare pending data for submission
       setFormData(autoAppliedForm);
@@ -402,8 +413,20 @@ export default function CreerOpportunite() {
         if (assistantNotificationTimeoutRef.current) clearTimeout(assistantNotificationTimeoutRef.current);
         assistantNotificationTimeoutRef.current = setTimeout(() => setAssistantNotification(null), 3000);
       }
+
+      console.log('💾 [SPELLCHECK] Saving mission to database...');
+      // Automatically persist the mission (silent flow - no modal, no user confirmation needed)
+      await persistOpportunity(autoAppliedForm);
+      console.log('✅ [SPELLCHECK] Mission saved successfully!');
+      console.groupEnd();
+      
     } catch (error) {
-      setPrePublishReviewError(error instanceof Error ? error.message : 'Erreur lors de l\'analyse IA avant publication.');
+      console.error('[SPELLCHECK] Error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Erreur lors de l\'analyse IA avant publication.';
+      setPrePublishReviewError(errorMsg);
+      setErrorMsg(errorMsg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      console.groupEnd();
     } finally {
       setIsPrePublishReviewLoading(false);
     }
@@ -815,7 +838,7 @@ export default function CreerOpportunite() {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={confirmPrePublishReview}
+                    onClick={() => void confirmPrePublishReview()}
                     disabled={isPrePublishReviewLoading}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                   >

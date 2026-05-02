@@ -360,10 +360,13 @@ export function FormulaireOpportunite({
                 <button
                   type="button"
                   onClick={onAssistantMenuClick}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
                   aria-label={isFrench ? 'Ouvrir l\'assistant IA' : 'Open AI assistant'}
+                  style={{
+                    animation: 'assistantCalloutEnter 360ms ease-out, assistantCalloutIdle 2600ms ease-in-out 360ms infinite',
+                  }}
                 >
-                  {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span aria-hidden className="text-lg">🤖</span>}
                   <span aria-hidden="true"></span>
                   {isFrench ? 'Assistant IA' : 'AI Assistant'}
                 </button>
@@ -383,15 +386,10 @@ export function FormulaireOpportunite({
 
               <div
                 className={`assistant-callout ${assistantCalloutActive ? 'is-active' : ''}`}
-                style={{
-                  animation: assistantCalloutActive
-                    ? 'assistantCalloutEnter 360ms ease-out, assistantCalloutIdle 2600ms ease-in-out 360ms infinite'
-                    : 'assistantCalloutIdle 2600ms ease-in-out infinite',
-                }}
               >
                 <div className="flex items-start gap-2">
                   <span
-                    className={`assistant-callout__icon text-sm leading-none mt-0.5 ${assistantCalloutActive ? 'text-emerald-600' : 'text-primary'}`}
+                    className={`text-sm leading-none mt-0.5 ${assistantCalloutActive ? 'text-emerald-600' : 'text-primary'}`}
                     aria-hidden="true"
                   >
                     🤖
@@ -411,7 +409,7 @@ export function FormulaireOpportunite({
                 </div>
               </div>
 
-              {isAssistantMenuOpen && (
+              {isAssistantMenuOpen && missingAssistantFields.length === 0 && (
                 <div className="mt-2 flex gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
                   {onAssistantChatClick && (
                     <button
@@ -421,7 +419,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'Écrire quelques infos (tchat)' : 'Write some info (chat)'}
                     >
                       <Sparkles className="w-4 h-4 text-green-500" />
-                      {'Générer ma fiche mission automatiquement'}
+                      {isFrench ? 'Écris quelques infos (tchat)' : 'Write some info (chat)'}
                     </button>
                   )}
 
@@ -433,7 +431,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'IA avec doc' : 'AI with doc'}
                     >
                       <FileUp className="w-4 h-4 text-blue-500" />
-                      {'Générer ma fiche mission automatiquement'}
+                      {isFrench ? 'Ajoute un document' : 'Add a document'}
                     </button>
                   )}
 
@@ -445,7 +443,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
                     >
                       <Link2 className="w-4 h-4 text-violet-600" />
-                      {'Générer ma fiche mission automatiquement'}
+                      {isFrench ? 'Partage un lien' : 'Share a link'}
                     </button>
                   )}
                 </div>
