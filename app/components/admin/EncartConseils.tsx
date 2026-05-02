@@ -1018,15 +1018,15 @@ export function EncartConseils({
     suppressChatAutoOpenRef.current = true;
 
     if (chatAutoOpenTimeoutRef.current) {
-      window.clearTimeout(chatAutoOpenTimeoutRef.current);
+      clearTimeout(chatAutoOpenTimeoutRef.current);
       chatAutoOpenTimeoutRef.current = null;
     }
 
     if (suppressChatAutoOpenTimeoutRef.current) {
-      window.clearTimeout(suppressChatAutoOpenTimeoutRef.current);
+      clearTimeout(suppressChatAutoOpenTimeoutRef.current);
     }
 
-    suppressChatAutoOpenTimeoutRef.current = window.setTimeout(() => {
+    suppressChatAutoOpenTimeoutRef.current = setTimeout(() => {
       suppressChatAutoOpenRef.current = false;
       suppressChatAutoOpenTimeoutRef.current = null;
     }, 2000);
@@ -1044,20 +1044,20 @@ export function EncartConseils({
     return () => {
       window.removeEventListener(suppressChatAutoOpenEventName, handleSuppressChatAutoOpen);
       if (suppressChatAutoOpenTimeoutRef.current) {
-        window.clearTimeout(suppressChatAutoOpenTimeoutRef.current);
+        clearTimeout(suppressChatAutoOpenTimeoutRef.current);
       }
       if (chatAutoOpenTimeoutRef.current) {
-        window.clearTimeout(chatAutoOpenTimeoutRef.current);
+        clearTimeout(chatAutoOpenTimeoutRef.current);
       }
     };
   }, []);
 
   const scheduleChatAutoOpen = (delayMs: number, beforeOpen?: () => void) => {
     if (chatAutoOpenTimeoutRef.current) {
-      window.clearTimeout(chatAutoOpenTimeoutRef.current);
+      clearTimeout(chatAutoOpenTimeoutRef.current);
     }
 
-    chatAutoOpenTimeoutRef.current = window.setTimeout(() => {
+    chatAutoOpenTimeoutRef.current = setTimeout(() => {
       chatAutoOpenTimeoutRef.current = null;
       beforeOpen?.();
 
@@ -1184,8 +1184,8 @@ export function EncartConseils({
   // [UX] Focus chat input when overlay opens.
   useEffect(() => {
     if (!isChatOverlayOpen) return;
-    const id = window.setTimeout(() => chatInputRef.current?.focus(), 30);
-    return () => window.clearTimeout(id);
+    const id = setTimeout(() => chatInputRef.current?.focus(), 30);
+    return () => clearTimeout(id);
   }, [isChatOverlayOpen]);
 
   // [UX] Modal focus trapping and Escape priority handling.

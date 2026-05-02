@@ -62,11 +62,6 @@ ${noExplain}
 `;
 }
 
-Toutes les réponses doivent être en français.
-Pas d'explications hors JSON.
-`;
-}
-
 export function buildOptimizeMissionPrompt(data: {
   mission: {
     contributionTypes?: string;
