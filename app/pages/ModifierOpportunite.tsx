@@ -714,7 +714,7 @@ export const ModifierOpportuniteModal = ({
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={confirmPrePublishReview}
+                    onClick={() => void confirmPrePublishReview()}
                     disabled={isPrePublishReviewLoading}
                     className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white font-medium hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
