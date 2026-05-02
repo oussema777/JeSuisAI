@@ -313,6 +313,7 @@ export async function optimizeMissionVersion(data: {
       optimized_contributions?: string;
     };
   };
+  language?: 'fr' | 'en';
 }) {
   const lang = (data as any).language === 'en' ? 'en' : 'fr';
   const prompt = buildOptimizeMissionPrompt(data, lang);
