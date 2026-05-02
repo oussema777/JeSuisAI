@@ -1683,6 +1683,11 @@ export function EncartConseils({
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event(suppressChatAutoOpenEventName));
     }
+    if (chatAutoOpenTimeoutRef.current) {
+      clearTimeout(chatAutoOpenTimeoutRef.current);
+      chatAutoOpenTimeoutRef.current = null;
+    }
+    setIsChatOverlayOpen(false);
     onApplyFieldUpdates(draftFormData);
     setIsDraftMode(false);
     setConfirmDiscardDraft(false);
