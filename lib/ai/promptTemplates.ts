@@ -1,4 +1,6 @@
-export function buildAnalyzePrompt(data: any) {
+export function buildAnalyzePrompt(data: any, language: 'fr' | 'en' = 'fr') {
+  const langInstruction = language === 'en' ? 'All responses must be in English.' : "Toutes les réponses doivent être en français.";
+  const noExplain = language === 'en' ? 'No explanations outside the JSON.' : "Pas d'explications hors JSON.";
   return `
 Vous êtes un évaluateur stratégique de missions pour la diaspora.
 
@@ -55,10 +57,8 @@ Retournez UNIQUEMENT du JSON valide dans ce format :
     "impacts": string | null,
     "contributions": string | null
   }
-}
-
-Toutes les réponses doivent être en français.
-Pas d'explications hors JSON.
+\n${langInstruction}
+${noExplain}
 `;
 }
 
@@ -94,7 +94,9 @@ export function buildOptimizeMissionPrompt(data: {
       optimized_contributions?: string;
     };
   };
-}) {
+}, language: 'fr' | 'en' = 'fr') {
+  const langInstruction = language === 'en' ? 'Please respond in English only.' : 'Répondre en français uniquement.';
+  const noExplain = language === 'en' ? 'No explanations outside JSON.' : "Pas d'explications hors JSON.";
   return `
 Vous êtes un expert en amélioration de missions pour la diaspora.
 
@@ -180,7 +182,8 @@ Retournez UNIQUEMENT du JSON valide dans ce format :
   "optimized_remunerationPrevue": "string"
 }
 
-Pas d'explications hors JSON.
+${langInstruction}
+${noExplain}
 `;
 }
 
@@ -204,6 +207,8 @@ export function buildFormAssistantChatPrompt(data: {
   userMessage: string;
   language?: "fr" | "en";
 }) {
+  const langInstructionFinal = data.language === 'en' ? 'Please answer in English.' : 'Répondre en français.';
+  const noExplain = data.language === 'en' ? 'No explanations outside the JSON.' : "Pas d'explications hors JSON.";
   return `
 Vous êtes un architecte de contexte pour améliorer une mission destinée à la diaspora.
 
@@ -273,7 +278,8 @@ Retournez UNIQUEMENT du JSON valide au format :
   }
 }
 
-Pas d'explications hors JSON.
+\n${langInstructionFinal}
+${noExplain}
 `;
 }
 
@@ -292,7 +298,8 @@ export function buildDocumentToMissionPrompt(data: {
     timingAction?: string;
     remunerationPrevue?: string;
   };
-}) {
+}, language: 'fr' | 'en' = 'fr') {
+  const langInstruction = language === 'en' ? 'Please produce the output in English.' : 'Tous les champs textuels doivent être en français.';
   return `
 Vous êtes un assistant expert de formulation de missions diaspora.
 
@@ -331,7 +338,8 @@ Retournez UNIQUEMENT du JSON valide au format :
   "remunerationPrevue": "string"
 }
 
-Pas d'explications hors JSON.
+\n${langInstruction}
+\nPas d'explications hors JSON.
 `;
 }
 
@@ -344,7 +352,9 @@ export function buildPrePublishPolishPrompt(data: {
   detailRemuneration?: string;
   facilitesAutres?: string;
   remunerationAutre?: string;
-}) {
+}, language: 'fr' | 'en' = 'fr') {
+  const langInstruction = language === 'en' ? 'Please answer in English.' : '';
+  const noExplain = language === 'en' ? 'No explanations outside JSON.' : 'Pas d\'explications hors JSON.';
   return `
 Vous êtes un relecteur éditorial avant publication de mission.
 
@@ -356,6 +366,12 @@ Règles strictes :
 - Améliorer la lisibilité (phrases claires, ponctuation correcte, sauts de ligne propres).
 - Garder un ton professionnel.
 - Si un champ est vide, le laisser vide.
+
+Instructions supplémentaires (important) :
+- N'EFFECTUEZ QUE des corrections orthographiques, grammaticales et de ponctuation mineures.
+- NE REFORMULEZ PAS les phrases; NE CHANGEZ PAS la structure des phrases ni le choix des mots à moins qu'il s'agisse d'une faute (typo, accord, conjugaison).
+- Évitez toute paraphrase ou réécriture qui altère le style ou introduit de nouvelles phrases; limitez-vous aux corrections de mots et de ponctuation.
+- Si une correction implique de remplacer plus de 3 mots consécutifs ou modifie plus de 15% des mots du champ, ne l'appliquez pas — retournez la valeur originale.
 
 Champs à corriger :
 - intituleAction: ${data.title ?? ''}
@@ -379,7 +395,8 @@ Retournez UNIQUEMENT du JSON valide avec exactement ce format :
   "remunerationAutre": "string"
 }
 
-Pas d'explications hors JSON.
+${langInstruction}
+${noExplain}
 `;
 }
 

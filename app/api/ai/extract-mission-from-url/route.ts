@@ -120,7 +120,7 @@ export async function POST(req: Request) {
     const extracted = await inferMissionFromDocumentContext({
       documentContext,
       currentMission,
-    });
+    }, body?.language === 'en' ? 'en' : 'fr');
 
     return Response.json({
       extracted: normalizeExtracted(extracted),

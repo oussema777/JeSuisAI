@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, AlertCircle, PlusCircle, List, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 import { HeaderAdmin } from "../components/admin/HeaderAdmin";
@@ -53,6 +53,9 @@ export default function CreerOpportunite() {
   const [assistantNotification, setAssistantNotification] = useState<string | null>(null);
   const assistantNotificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const assistantTriggerEventName = 'encart-conseils-open-assistant';
+  const suppressChatAutoOpenEventName = 'encart-conseils-suppress-chat-autopen';
+  const locale = useLocale();
+  const isFrench = locale.startsWith('fr');
 
   // Form state - Aligned with Cahier de Charge
   const [formData, setFormData] = useState({
@@ -154,19 +157,7 @@ export default function CreerOpportunite() {
   };
 
   const handleAssistantMenuClick = () => {
-    const missing = getMissingAssistantFields();
-    if (missing.length > 0) {
-      if (assistantNotificationTimeoutRef.current) {
-        clearTimeout(assistantNotificationTimeoutRef.current);
-      }
-      setAssistantNotification(`Remplis : ${missing.join(', ')}`);
-      assistantNotificationTimeoutRef.current = setTimeout(() => {
-        setAssistantNotification(null);
-        assistantNotificationTimeoutRef.current = null;
-      }, 4000);
-    } else {
-      setIsAssistantMenuOpen(true);
-    }
+    setIsAssistantMenuOpen((prev) => !prev);
   };
 
   const handleAiResult = (result: DetailedMissionAnalysis | null) => {
@@ -198,7 +189,13 @@ export default function CreerOpportunite() {
     }));
   };
 
+  const suppressAssistantChatAutoOpen = () => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new Event(suppressChatAutoOpenEventName));
+  };
+
   const handleKeepInlineSuggestion = (field: SuggestionFieldKey, value: string) => {
+    suppressAssistantChatAutoOpen();
     applyAiFieldUpdates({ [field]: value } as Partial<FormDataOpportunite>);
     setInlineSuggestion(null);
   };
@@ -328,6 +325,7 @@ export default function CreerOpportunite() {
           detailRemuneration: sourceFormData.detailRemuneration,
           facilitesAutres: sourceFormData.facilitesAutres,
           remunerationAutre: sourceFormData.remunerationAutre,
+          language: isFrench ? 'fr' : 'en',
         }),
       });
 
@@ -347,19 +345,63 @@ export default function CreerOpportunite() {
         remunerationAutre: polishedData.remunerationAutre ?? sourceFormData.remunerationAutre,
       };
 
-      setPrePublishReview(correctedData);
+      // Apply only minimal, word-level corrections automatically (silent flow)
+      function shouldAcceptCorrection(original = '', corrected = '') {
+        const o = String(original || '').trim();
+        const c = String(corrected || '').trim();
+        if (!c || o === c) return false;
+        const oWords = o.split(/\s+/).filter(Boolean);
+        const cWords = c.split(/\s+/).filter(Boolean);
+        const total = Math.max(oWords.length, cWords.length, 1);
+        let diff = 0;
+        const minLen = Math.min(oWords.length, cWords.length);
+        for (let i = 0; i < minLen; i++) {
+          if (oWords[i] !== cWords[i]) diff++;
+        }
+        diff += Math.abs(oWords.length - cWords.length);
+        const ratio = diff / total;
+        return diff <= 3 || ratio <= 0.15;
+      }
+
+      function applyMinimalCorrectionsToForm(orig: FormDataOpportunite, corrected: PrePublishPolishedMission) {
+        const result = { ...orig } as FormDataOpportunite;
+        const fields: Array<[keyof PrePublishPolishedMission, keyof FormDataOpportunite]> = [
+          ['intituleAction', 'intituleAction'],
+          ['descriptionGenerale', 'descriptionGenerale'],
+          ['impactsObjectifs', 'impactsObjectifs'],
+          ['detailsContributions', 'detailsContributions'],
+          ['conditionsMission', 'conditionsMission'],
+          ['detailRemuneration', 'detailRemuneration'],
+          ['facilitesAutres', 'facilitesAutres'],
+          ['remunerationAutre', 'remunerationAutre'],
+        ];
+
+        let appliedAny = false;
+        for (const [cKey, fKey] of fields) {
+          const originalVal = String((orig as any)[fKey] ?? '');
+          const correctedVal = String((corrected as any)[cKey] ?? '');
+          if (shouldAcceptCorrection(originalVal, correctedVal)) {
+            (result as any)[fKey] = correctedVal;
+            appliedAny = true;
+          }
+        }
+        return { result, appliedAny } as any;
+      }
+
+      const { result: autoAppliedForm, appliedAny } = applyMinimalCorrectionsToForm(sourceFormData, correctedData);
+
+      // Update form in-place and prepare pending data for submission
+      setFormData(autoAppliedForm);
       setPendingPublishData({
-        ...sourceFormData,
-        intituleAction: correctedData.intituleAction,
-        descriptionGenerale: correctedData.descriptionGenerale,
-        impactsObjectifs: correctedData.impactsObjectifs,
-        detailsContributions: correctedData.detailsContributions,
-        conditionsMission: correctedData.conditionsMission,
-        detailRemuneration: correctedData.detailRemuneration,
-        facilitesAutres: correctedData.facilitesAutres,
-        remunerationAutre: correctedData.remunerationAutre,
+        ...autoAppliedForm,
       });
-      setIsPrePublishReviewOpen(true);
+
+      // Brief user notification when silent corrections applied
+      if (appliedAny) {
+        setAssistantNotification(isFrench ? 'Corrections orthographiques appliquées automatiquement' : 'Spelling corrections applied automatically');
+        if (assistantNotificationTimeoutRef.current) clearTimeout(assistantNotificationTimeoutRef.current);
+        assistantNotificationTimeoutRef.current = setTimeout(() => setAssistantNotification(null), 3000);
+      }
     } catch (error) {
       setPrePublishReviewError(error instanceof Error ? error.message : 'Erreur lors de l\'analyse IA avant publication.');
     } finally {

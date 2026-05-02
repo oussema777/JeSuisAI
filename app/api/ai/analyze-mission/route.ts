@@ -17,7 +17,8 @@ export async function POST(req: Request) {
       domain: body.domain,
       title: body.title,
       description: body.description,
-      impactsObjectifs: body.impactsObjectifs
+      impactsObjectifs: body.impactsObjectifs,
+      language: body.language === 'en' ? 'en' : 'fr',
     });
     
     console.log('[AI] Analysis result:', result);

@@ -151,13 +151,17 @@ export function FormulaireOpportunite({
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const assistantCalloutActive = shouldShowStarterChecklist;
-  const assistantCalloutMessage = assistantCalloutActive
+  const assistantCalloutTitle = assistantCalloutActive
+    ? (isFrench ? 'Pour commencer :' : 'To get started :')
+    : null;
+  const assistantCalloutBody = assistantCalloutActive
     ? (isFrench
-      ? 'Pour commencer : 👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
-      : 'To get started : 👉 Provide: mission title, domain, diaspora contributions')
-    : (isFrench
-      ? '💡 Besoin d’aide ? Je peux corriger ta fiche mission ou en créer une pour toi.'
-      : '💡 Need help? I can improve your mission form or create one for you.');
+      ? '👉 Indique : titre de la mission, domaine d’intervention, contributions de la diaspora'
+      : '👉 Provide: mission title, domain, diaspora contributions')
+    : null;
+  const assistantCalloutMessage = isFrench
+    ? '💡 Besoin d’aide ? Je peux corriger ta fiche mission ou en créer une pour toi.'
+    : '💡 Need help? I can improve your mission form or create one for you.';
 
   // Auto-scroll to field when inline suggestion appears
   useEffect(() => {
@@ -360,7 +364,7 @@ export function FormulaireOpportunite({
                   aria-label={isFrench ? 'Ouvrir l\'assistant IA' : 'Open AI assistant'}
                 >
                   {assistantAnalyzeLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  <span aria-hidden="true">🤖</span>
+                  <span aria-hidden="true"></span>
                   {isFrench ? 'Assistant IA' : 'AI Assistant'}
                 </button>
 
@@ -393,15 +397,22 @@ export function FormulaireOpportunite({
                     🤖
                   </span>
                   <div className="min-w-0">
-                    <p className={`text-sm font-semibold leading-tight ${assistantCalloutActive ? 'text-emerald-700' : 'text-primary'}`}>
-                      {assistantCalloutMessage}
-                    </p>
+                    {assistantCalloutActive ? (
+                      <>
+                        <p className="text-sm font-semibold leading-tight text-emerald-700">{assistantCalloutTitle}</p>
+                        <p className="text-sm leading-snug text-emerald-700/90 font-medium mt-0.5">
+                          {assistantCalloutBody}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-sm font-semibold leading-tight text-primary">{assistantCalloutMessage}</p>
+                    )}
                   </div>
                 </div>
               </div>
 
               {isAssistantMenuOpen && (
-                <div className="mt-2 flex flex-col gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200 w-fit">
+                <div className="mt-2 flex gap-2 bg-neutral-50 p-2 rounded-lg border border-neutral-200">
                   {onAssistantChatClick && (
                     <button
                       type="button"
@@ -410,7 +421,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'Écrire quelques infos (tchat)' : 'Write some info (chat)'}
                     >
                       <Sparkles className="w-4 h-4 text-green-500" />
-                      {isFrench ? 'Ecris qqs infos (tchat)' : 'Write a few infos (chat)'}
+                      {'Générer ma fiche mission automatiquement'}
                     </button>
                   )}
 
@@ -422,7 +433,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'IA avec doc' : 'AI with doc'}
                     >
                       <FileUp className="w-4 h-4 text-blue-500" />
-                      {isFrench ? 'IA avec doc' : 'AI with doc'}
+                      {'Générer ma fiche mission automatiquement'}
                     </button>
                   )}
 
@@ -434,7 +445,7 @@ export function FormulaireOpportunite({
                       aria-label={isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
                     >
                       <Link2 className="w-4 h-4 text-violet-600" />
-                      {isFrench ? 'Lien site (URL)' : 'Website link (URL)'}
+                      {'Générer ma fiche mission automatiquement'}
                     </button>
                   )}
                 </div>
