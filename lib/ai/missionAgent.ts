@@ -519,19 +519,29 @@ export async function polishMissionBeforePublish(data: {
 }) {
   const lang = data.language === 'en' ? 'en' : 'fr';
   const prompt = buildPrePublishPolishPrompt(data, lang);
-  const response = await getGeminiClient().generate(prompt, { temperature: 0.2 });
+  
+  try {
+    const response = await getGeminiClient().generate(prompt, { temperature: 0.2 });
+    console.log('[polishMissionBeforePublish] Raw response:', response.substring(0, 200));
 
-  const cleanedResponse = cleanModelResponse(response);
-  const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
+    const cleanedResponse = cleanModelResponse(response);
+    console.log('[polishMissionBeforePublish] Cleaned response:', cleanedResponse.substring(0, 200));
+    
+    const parsed = JSON.parse(cleanedResponse) as Partial<PrePublishPolishedMission>;
+    console.log('[polishMissionBeforePublish] Parsed successfully:', Object.keys(parsed));
 
-  return {
-    intituleAction: truncateForField(parsed.intituleAction ?? data.title ?? '', 'title'),
-    descriptionGenerale: truncateForField(parsed.descriptionGenerale ?? data.description ?? '', 'description'),
-    impactsObjectifs: truncateForField(parsed.impactsObjectifs ?? data.impactsObjectifs ?? '', 'impacts'),
-    detailsContributions: truncateForField(parsed.detailsContributions ?? data.detailsContributions ?? '', 'contributions'),
-    conditionsMission: truncateForField(parsed.conditionsMission ?? data.conditionsMission ?? '', 'conditions'),
-    detailRemuneration: truncateForField(parsed.detailRemuneration ?? data.detailRemuneration ?? '', 'impacts'),
-    facilitesAutres: parsed.facilitesAutres ?? data.facilitesAutres ?? '',
-    remunerationAutre: parsed.remunerationAutre ?? data.remunerationAutre ?? '',
-  } as PrePublishPolishedMission;
+    return {
+      intituleAction: truncateForField(parsed.intituleAction ?? data.title ?? '', 'title'),
+      descriptionGenerale: truncateForField(parsed.descriptionGenerale ?? data.description ?? '', 'description'),
+      impactsObjectifs: truncateForField(parsed.impactsObjectifs ?? data.impactsObjectifs ?? '', 'impacts'),
+      detailsContributions: truncateForField(parsed.detailsContributions ?? data.detailsContributions ?? '', 'contributions'),
+      conditionsMission: truncateForField(parsed.conditionsMission ?? data.conditionsMission ?? '', 'conditions'),
+      detailRemuneration: truncateForField(parsed.detailRemuneration ?? data.detailRemuneration ?? '', 'impacts'),
+      facilitesAutres: parsed.facilitesAutres ?? data.facilitesAutres ?? '',
+      remunerationAutre: parsed.remunerationAutre ?? data.remunerationAutre ?? '',
+    } as PrePublishPolishedMission;
+  } catch (error) {
+    console.error('[polishMissionBeforePublish] Error:', error);
+    throw error;
+  }
 }

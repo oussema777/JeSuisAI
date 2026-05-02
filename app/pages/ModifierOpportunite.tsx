@@ -270,24 +270,34 @@ export const ModifierOpportuniteModal = ({
     setIsPrePublishReviewLoading(true);
 
     try {
+      console.group('🔍 [SPELLCHECK] Starting Pre-Publish Review');
+      
+      const requestPayload = {
+        title: sourceFormData.intituleAction,
+        description: sourceFormData.descriptionGenerale,
+        impactsObjectifs: sourceFormData.impactsObjectifs,
+        detailsContributions: sourceFormData.detailsContributions,
+        conditionsMission: sourceFormData.conditionsMission,
+        detailRemuneration: sourceFormData.detailRemuneration,
+        facilitesAutres: sourceFormData.facilitesAutres,
+        remunerationAutre: sourceFormData.remunerationAutre,
+        language: isFrench ? 'fr' : 'en',
+      };
+      
+      console.log('📤 [SPELLCHECK] Sending to API:', requestPayload);
+
       const polishResponse = await fetch('/api/ai/polish-before-publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: sourceFormData.intituleAction,
-          description: sourceFormData.descriptionGenerale,
-          impactsObjectifs: sourceFormData.impactsObjectifs,
-          detailsContributions: sourceFormData.detailsContributions,
-          conditionsMission: sourceFormData.conditionsMission,
-          detailRemuneration: sourceFormData.detailRemuneration,
-          facilitesAutres: sourceFormData.facilitesAutres,
-          remunerationAutre: sourceFormData.remunerationAutre,
-          language: isFrench ? 'fr' : 'en',
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       const polishedData = (await polishResponse.json()) as PrePublishPolishedMission & { error?: string; details?: string };
+      
+      console.log('📥 [SPELLCHECK] API Response:', polishedData);
+      
       if (!polishResponse.ok) {
+        console.error('❌ [SPELLCHECK] API Error:', polishedData);
         throw new Error(polishedData?.details || polishedData?.error || 'Pré-correction IA impossible avant mise à jour.');
       }
 
@@ -301,25 +311,11 @@ export const ModifierOpportuniteModal = ({
         facilitesAutres: polishedData.facilitesAutres ?? sourceFormData.facilitesAutres,
         remunerationAutre: polishedData.remunerationAutre ?? sourceFormData.remunerationAutre,
       };
+      
+      console.log('✅ [SPELLCHECK] Corrected Data (from AI):', correctedData);
 
-      function shouldAcceptCorrection(original = '', corrected = '') {
-        const o = String(original || '').trim();
-        const c = String(corrected || '').trim();
-        if (!c || o === c) return false;
-        const oWords = o.split(/\s+/).filter(Boolean);
-        const cWords = c.split(/\s+/).filter(Boolean);
-        const total = Math.max(oWords.length, cWords.length, 1);
-        let diff = 0;
-        const minLen = Math.min(oWords.length, cWords.length);
-        for (let i = 0; i < minLen; i++) {
-          if (oWords[i] !== cWords[i]) diff++;
-        }
-        diff += Math.abs(oWords.length - cWords.length);
-        const ratio = diff / total;
-        return diff <= 3 || ratio <= 0.15;
-      }
-
-      function applyMinimalCorrectionsToForm(orig: FormDataOpportunite, corrected: PrePublishPolishedMission) {
+      function applyCorrectionsToForm(orig: FormDataOpportunite, corrected: PrePublishPolishedMission) {
+        console.group('🔄 [SPELLCHECK] Applying AI Corrections to Form:');
         const result = { ...orig } as FormDataOpportunite;
         const fields: Array<[keyof PrePublishPolishedMission, keyof FormDataOpportunite]> = [
           ['intituleAction', 'intituleAction'],
@@ -336,15 +332,31 @@ export const ModifierOpportuniteModal = ({
         for (const [cKey, fKey] of fields) {
           const originalVal = String((orig as any)[fKey] ?? '');
           const correctedVal = String((corrected as any)[cKey] ?? '');
-          if (shouldAcceptCorrection(originalVal, correctedVal)) {
-            (result as any)[fKey] = correctedVal;
-            appliedAny = true;
+          
+          if (originalVal === correctedVal) {
+            console.log(`✏️  [${fKey}] No changes (identical)`);
+            continue;
           }
+          
+          (result as any)[fKey] = correctedVal;
+          appliedAny = true;
+          console.log(`✅ [${fKey}] Updated:\n   From: "${originalVal.substring(0, 80)}${originalVal.length > 80 ? '...' : ''}"\n   To:   "${correctedVal.substring(0, 80)}${correctedVal.length > 80 ? '...' : ''}"`);
         }
+        console.groupEnd();
+        
         return { result, appliedAny } as any;
       }
 
-      const { result: autoAppliedForm, appliedAny } = applyMinimalCorrectionsToForm(sourceFormData, correctedData);
+      const { result: autoAppliedForm, appliedAny } = applyCorrectionsToForm(sourceFormData, correctedData);
+
+      if (appliedAny) {
+        console.log('📊 [SPELLCHECK] Corrections Applied:', {
+          original: sourceFormData,
+          corrected: autoAppliedForm,
+        });
+      } else {
+        console.log('✨ [SPELLCHECK] No corrections needed - text is clean!');
+      }
 
       setFormData(autoAppliedForm);
       setPendingPublishData({
@@ -356,15 +368,28 @@ export const ModifierOpportuniteModal = ({
         if (assistantNotificationTimeoutRef.current) clearTimeout(assistantNotificationTimeoutRef.current);
         assistantNotificationTimeoutRef.current = setTimeout(() => setAssistantNotification(null), 3000);
       }
+
+      console.log('💾 [SPELLCHECK] Saving mission to database...');
+      // Automatically persist the mission (silent flow - no modal, no user confirmation needed)
+      await confirmPrePublishReview(autoAppliedForm);
+      console.log('✅ [SPELLCHECK] Mission saved successfully!');
+      console.groupEnd();
+      
     } catch (error) {
-      setPrePublishReviewError(error instanceof Error ? error.message : 'Erreur lors de l\'analyse IA avant mise à jour.');
+      console.error('[SPELLCHECK] Error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Erreur lors de l\'analyse IA avant mise à jour.';
+      setPrePublishReviewError(errorMsg);
+      setErrorMsg(errorMsg);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      console.groupEnd();
     } finally {
       setIsPrePublishReviewLoading(false);
     }
   };
 
-  const confirmPrePublishReview = async () => {
-    if (!pendingPublishData) return;
+  const confirmPrePublishReview = async (formDataOverride?: typeof pendingPublishData) => {
+    const dataToUse = formDataOverride || pendingPublishData;
+    if (!dataToUse) return;
 
     setIsSubmitting(true);
     setErrorMsg('');
@@ -372,43 +397,43 @@ export const ModifierOpportuniteModal = ({
     try {
       // upload new files if any
       let imagePath = currentImagePath;
-      if (pendingPublishData.photoRepresentation.length > 0) {
-        const paths = await uploadFiles(pendingPublishData.photoRepresentation, 'photos');
+      if (dataToUse.photoRepresentation.length > 0) {
+        const paths = await uploadFiles(dataToUse.photoRepresentation, 'photos');
         imagePath = paths[0];
       }
 
       let documentPaths = [...currentDocPaths];
-      if (pendingPublishData.fichierTechnique.length > 0) {
-        const newPaths = await uploadFiles(pendingPublishData.fichierTechnique, 'fichiers');
+      if (dataToUse.fichierTechnique.length > 0) {
+        const newPaths = await uploadFiles(dataToUse.fichierTechnique, 'fichiers');
         documentPaths = [...documentPaths, ...newPaths];
       }
 
       const oppPayload = {
-        intitule_action: pendingPublishData.intituleAction,
+        intitule_action: dataToUse.intituleAction,
         photo_representation_path: imagePath,
-        domaine_action: pendingPublishData.domaineAction,
-        public_vise: pendingPublishData.publicVise,
-        timing_action: pendingPublishData.timingAction,
-        mission_urgente: pendingPublishData.missionUrgente === "oui",
-        date_debut: parseDateToISO(pendingPublishData.dateDebut),
-        date_fin: parseDateToISO(pendingPublishData.dateFin),
-        afficher_une: pendingPublishData.afficherUne,
-        action_distance: pendingPublishData.actionDistance,
-        description_generale: pendingPublishData.descriptionGenerale,
-        impacts_objectifs: pendingPublishData.impactsObjectifs,
-        details_contributions: pendingPublishData.detailsContributions,
-        contributions_diaspora: pendingPublishData.contributionsDiaspora,
+        domaine_action: dataToUse.domaineAction,
+        public_vise: dataToUse.publicVise,
+        timing_action: dataToUse.timingAction,
+        mission_urgente: dataToUse.missionUrgente === "oui",
+        date_debut: parseDateToISO(dataToUse.dateDebut),
+        date_fin: parseDateToISO(dataToUse.dateFin),
+        afficher_une: dataToUse.afficherUne,
+        action_distance: dataToUse.actionDistance,
+        description_generale: dataToUse.descriptionGenerale,
+        impacts_objectifs: dataToUse.impactsObjectifs,
+        details_contributions: dataToUse.detailsContributions,
+        contributions_diaspora: dataToUse.contributionsDiaspora,
         fichier_technique_paths: documentPaths,
-        lien_site_fb: pendingPublishData.lienSiteFB,
-        conditions_mission: pendingPublishData.conditionsMission,
-        remuneration_prevue: pendingPublishData.remunerationPrevue,
-        remuneration_autre: pendingPublishData.remunerationAutre,
-        detail_remuneration: pendingPublishData.detailRemuneration || null,
-        facilites: pendingPublishData.facilites,
-        facilites_autres: pendingPublishData.facilitesAutres,
-        emails_rappel: pendingPublishData.emailsRappel,
-        statut_publication: pendingPublishData.statutPublication,
-        date_publication: pendingPublishData.datePublication ? new Date(pendingPublishData.datePublication).toISOString() : null,
+        lien_site_fb: dataToUse.lienSiteFB,
+        conditions_mission: dataToUse.conditionsMission,
+        remuneration_prevue: dataToUse.remunerationPrevue,
+        remuneration_autre: dataToUse.remunerationAutre,
+        detail_remuneration: dataToUse.detailRemuneration || null,
+        facilites: dataToUse.facilites,
+        facilites_autres: dataToUse.facilitesAutres,
+        emails_rappel: dataToUse.emailsRappel,
+        statut_publication: dataToUse.statutPublication,
+        date_publication: dataToUse.datePublication ? new Date(dataToUse.datePublication).toISOString() : null,
       };
 
       const { data: updateData, error: updateError } = await supabase
@@ -425,8 +450,8 @@ export const ModifierOpportuniteModal = ({
       const { error: deleteError } = await supabase.from('opportunite_contacts').delete().eq('opportunite_id', opportunityId);
       if (deleteError) throw deleteError;
 
-      if (pendingPublishData.contacts.length > 0) {
-         const contactsPayload = pendingPublishData.contacts
+      if (dataToUse.contacts.length > 0) {
+         const contactsPayload = dataToUse.contacts
             .filter(c => c.nom || c.email)
             .map((c, i) => ({
              opportunite_id: opportunityId,

@@ -921,7 +921,7 @@ export function EncartConseils({
     assistantName: isFrench ? 'Assistant IA' : 'AI Assistant',
     you: isFrench ? 'Toi' : 'You',
     openOverlay: isFrench ? 'Agrandir' : 'Expand chat',
-    reopenChat: isFrench ? 'Rouvrir le chat' : 'Reopen chat',
+    reopenChat: isFrench ? 'Écris quelques infos (tchat)' : 'Write some info (chat)',
     reanalyze: isFrench ? 'Relancer l\'analyse' : 'Reanalyze',
     noChangesDetected: isFrench ? 'Aucun changement' : 'No changes',
     noChangesNotification: isFrench
@@ -1131,7 +1131,18 @@ export function EncartConseils({
       }
 
       if (!hasMinimumMissionContext) {
-        setError(ui.minimumContext);
+        const starter = isFrench
+          ? 'Pour commencer :\n\n👉 Indique : titre de la mission, domaine d\'intervention, contributions de la diaspora'
+          : 'To start:\n\n👉 Indicate: mission title, domain, diaspora contribution types';
+
+        // avoid repeating the same starter note multiple times
+        const last = chatHistory[chatHistory.length - 1];
+        if (!last || last.role !== 'assistant' || last.content !== starter) {
+          setChatHistory((prev) => [...prev, buildMessage('assistant', starter)]);
+        }
+
+        // open the chat so the user sees the helper text
+        scheduleChatAutoOpen(0);
         return;
       }
 
@@ -1858,7 +1869,7 @@ export function EncartConseils({
       {!hideFloatingFab && hasMinimumMissionContext && !isAnalyzing && !aiResult && (
         <div ref={fabContainerRef} className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2">
           {!isFabOpen && isFabHovered && (
-            <div className="mb-1 rounded-md bg-neutral-900 text-white text-xs px-2 py-1 shadow-md animate-in fade-in duration-150">
+            <div className="mb-1 rounded-md bg-neutral-900 text-white text-xs px-2 py-1 shadow-md">
               {isFrench ? 'Analyser ma mission' : 'Analyze my mission'}
             </div>
           )}
@@ -1876,7 +1887,7 @@ export function EncartConseils({
               >
                 <span className="inline-flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  {isFrench ? 'Analyser' : 'Analyze'}
+                  {isFrench ? 'Écris quelques infos (tchat)' : 'Write some info (chat)'}
                 </span>
                 <span className="text-[10px] text-white/80">{isFrench ? 'Action principale' : 'Primary action'}</span>
               </button>
@@ -1893,7 +1904,7 @@ export function EncartConseils({
               >
                 <span className="inline-flex items-center gap-2">
                   <FileUp className="w-4 h-4" />
-                  {isFrench ? 'Depuis un document' : 'From a document'}
+                  {isFrench ? 'Ajoute un document' : 'Add a document'}
                 </span>
                 <span className="text-[10px] text-primary/80">{isFrench ? 'Pré-remplissage' : 'Pre-fill'}</span>
               </button>
@@ -1909,7 +1920,7 @@ export function EncartConseils({
               >
                 <span className="inline-flex items-center gap-2">
                   <Link2 className="w-4 h-4" />
-                  {isFrench ? 'Depuis un lien URL' : 'From a URL link'}
+                  {isFrench ? 'Partage un lien' : 'Share a link'}
                 </span>
                 <span className="text-[10px] text-violet-600/80">{isFrench ? 'Contexte web' : 'Web context'}</span>
               </button>
@@ -1937,7 +1948,7 @@ export function EncartConseils({
             onMouseEnter={() => setIsFabHovered(true)}
             onMouseLeave={() => setIsFabHovered(false)}
             aria-label={isFabOpen ? (isFrench ? 'Fermer l\'assistant IA' : 'Close AI assistant') : (isFrench ? 'Ouvrir l\'assistant IA' : 'Open AI assistant')}
-            className={`relative animate-in zoom-in-50 duration-200 flex items-center justify-center w-14 h-14 rounded-full shadow-lg transform transition-all hover:scale-110 ${focusRing} ${
+            className={`relative zoom-in-50 duration-200 flex items-center justify-center w-14 h-14 rounded-full shadow-lg transform transition-all hover:scale-110 ${isFabHovered ? 'animate-pulse' : ''} ${focusRing} ${
               isFabOpen ? 'bg-red-500 text-white rotate-45' : 'bg-primary text-white hover:shadow-xl'
             }`}
           >
@@ -1947,7 +1958,7 @@ export function EncartConseils({
             {isFabOpen ? (
               <X className="w-6 h-6" />
             ) : (
-              <Sparkles className="w-6 h-6" />
+              <span aria-hidden className="text-2xl">🤖</span>
             )}
           </button>
         </div>
@@ -1980,7 +1991,7 @@ export function EncartConseils({
                   : 'bg-neutral-200 text-neutral-500 cursor-not-allowed'
               } ${focusRing}`}
             >
-              {isAnalyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6" />}
+              {isAnalyzing ? <Loader2 className="w-6 h-6 animate-spin" /> : <span aria-hidden className="text-2xl">🤖</span>}
             </button>
             <span className={`text-[10px] ${hasMissionChangedSinceAnalysis ? 'text-neutral-600' : 'text-neutral-400'}`}>
               {ui.reanalyze}
@@ -2079,9 +2090,7 @@ export function EncartConseils({
                     className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-white disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium ${focusRing}`}
                   >
                     <FileUp className="w-4 h-4" />
-                    {isFrench
-                      ? 'Extraire et remplir le formulaire'
-                      : 'Extract content and pre-fill the form'}
+                    {ui.fillDocument}
                   </button>
                 </div>
               </>
@@ -2294,7 +2303,7 @@ export function EncartConseils({
                     disabled={isOptimizing || !aiResult}
                     className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed font-semibold ${focusRing}`}
                   >
-                    {isOptimizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    {isOptimizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <span aria-hidden className="text-lg">🤖</span>}
                     {isOptimizing ? ui.generatingFinal : ui.generateFinal}
                   </button>
                 </div>
