@@ -165,7 +165,21 @@ export interface DetailedMissionAnalysis {
 export interface OptimizedMissionVersion {
   optimized_title: string;
   optimized_description: string;
-  const response = await getGeminiClient().generate(prompt, { temperature: 0.3 });
+  optimized_impacts: string;
+  optimized_contributions: string;
+  optimized_conditions?: string;
+  optimized_publicVise?: string;
+  optimized_timingAction?: string;
+  optimized_missionUrgente?: string;
+  optimized_actionDistance?: string;
+  optimized_remunerationPrevue?: string;
+}
+
+export interface AssistantChatResponse {
+  assistant_message: string;
+  follow_up_question?: string;
+  consultation_points?: string[];
+  quick_replies?: string[];
   status_chips?: Array<{
     label: string;
     state: 'resolved' | 'pending' | 'clear';
@@ -209,7 +223,7 @@ export async function inferMissionFromDocumentFile(data: {
   mimeType: string;
   bytes: Uint8Array;
 }, language: 'fr' | 'en' = 'fr') {
-  const prompt = buildDocumentToMissionPrompt({ documentContext: '', currentMission: { language } }, language);
+  const prompt = buildDocumentToMissionPrompt({ documentContext: '', currentMission: {} }, language);
   const response = await getGeminiClient().generateContent(
     [
       { text: prompt },
@@ -427,7 +441,7 @@ export async function chatSectionFocused(data: {
   language?: 'fr' | 'en';
 }) {
   const lang = data.language === 'en' ? 'en' : 'fr';
-  const prompt = buildSectionFocusedPrompt(data, lang);
+  const prompt = buildSectionFocusedPrompt({ ...data, language: lang });
   const response = await getGeminiClient().generate(prompt);
 
   const cleanedResponse = cleanModelResponse(response);
