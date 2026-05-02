@@ -165,21 +165,7 @@ export interface DetailedMissionAnalysis {
 export interface OptimizedMissionVersion {
   optimized_title: string;
   optimized_description: string;
-  optimized_impacts: string;
-  optimized_contributions: string;
-  optimized_conditions?: string;
-  optimized_publicVise?: string;
-  optimized_timingAction?: string;
-  optimized_missionUrgente?: string;
-  optimized_actionDistance?: string;
-  optimized_remunerationPrevue?: string;
-}
-
-export interface AssistantChatResponse {
-  assistant_message: string;
-  follow_up_question?: string;
-  consultation_points?: string[];
-  quick_replies?: string[];
+  const response = await getGeminiClient().generate(prompt, { temperature: 0.3 });
   status_chips?: Array<{
     label: string;
     state: 'resolved' | 'pending' | 'clear';
