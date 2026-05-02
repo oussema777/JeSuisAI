@@ -1679,6 +1679,10 @@ export function EncartConseils({
 
   const keepDraftReview = () => {
     suppressNextChatAutoOpen();
+    // Also notify other listeners globally to suppress auto-open
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event(suppressChatAutoOpenEventName));
+    }
     onApplyFieldUpdates(draftFormData);
     setIsDraftMode(false);
     setConfirmDiscardDraft(false);
